@@ -1,0 +1,14 @@
+{
+    "name":"restclient",
+    "description": "Little REST Client written in JS",
+    "homepage":"http://qennix.github.com/restclient",
+    "keywords": ["util","functional", "client", "browser", "REST"],
+    "author":"Qennix <iam@qennix.com>",
+    "repository":{"type": "git", "url":"git://github.com/documentcloud/restclient.git"},
+    "dependencies": {
+        "underscore" : ">=1.3.1",
+        "jasmine-node": "*"
+    },
+    "main" : "restclient.js",
+    "version" : "0.1.0"
+}
