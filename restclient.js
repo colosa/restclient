@@ -1,4 +1,4 @@
-//	restclient.js 0.1.0
+//  restclient.js 0.1.1
 
 //  (c) 2012 Enrique Ponce de Leon, Qennix
 //  RestClient.js may be distributed under the MIT license.
@@ -25,6 +25,8 @@
     } else {
         RestClient = root.RestClient = {};
     }
+
+    RestClient.VERSION = '0.1.1';
 
     //Define Container Objects
     RestClient.authorization = {};
