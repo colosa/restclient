@@ -1,5 +1,4 @@
 //  restclient.js 0.1.1
-
 //  (c) 2012 Enrique Ponce de Leon, Qennix
 //  RestClient.js may be distributed under the MIT license.
 //  For all details and documentation:
@@ -28,11 +27,14 @@
 
     RestClient.VERSION = '0.1.1';
 
-    //Define Container Objects
-    RestClient.authorization = {};
-    RestClient.server = {};
-    RestClient.body = {};
-    RestClient.headers = {};
+    //Reset Initial Values
+    RestClient.reset = function(){
+        this.authorization = {};
+        this.server = {};
+        this.body = {};
+        this.headers = {};
+        return this;
+    };
 
     // Turn on 'useRelativeURL' to support relative url request
     RestClient.useRelativeURL = false;
@@ -71,10 +73,9 @@
 
     // Setting the OAuth2 Grant Type and Data
     RestClient.setGrantType = function (type, data) {
-        //return 'works!';
         this.authorization.grant_type = (this.OAUTH2GrantTypes[type] !== 'undefined') ? this.OAUTH2GrantTypes[type]
             : null;
-        //this.authorization.apply(this, data);
+        this.authorization = _.extend(this.authorization, data);
         return this;
     };
 
