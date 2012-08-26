@@ -6,13 +6,12 @@
  */
 
 var RestClient = require('../restclient.js');
-//var _ = require('underscore');
 
 describe("RestClient.js - OAuth2 Capabilities", function(){
 
     var rc = RestClient;
 
-    describe ("Authorization Methods: 'setClient'", function(){
+    describe ("Authorization Method: 'setClient'", function(){
 
         beforeEach(function(){
             rc.reset();
@@ -32,7 +31,7 @@ describe("RestClient.js - OAuth2 Capabilities", function(){
 
     });
 
-    describe ("Authorization Methods: 'setGrantType'", function(){
+    describe ("Authorization Method: 'setGrantType'", function(){
 
         beforeEach(function(){
             rc.reset();
@@ -89,4 +88,26 @@ describe("RestClient.js - OAuth2 Capabilities", function(){
         });
 
     });
+
+    describe ("Authorization Method: 'setAuthorizationServer'", function(){
+
+        beforeEach(function(){
+            rc.reset();
+        });
+
+        it ("should accept url to set the authorization server", function(){
+            var valid_url = 'http://rest.qennix.com:8083/oauth/token?aaa=1&yy=2#home';
+            var result = rc.setAuthorizationServer(valid_url);
+            expect(result).toBe(true);
+            expect(rc.server).toEqual({rest_auth_uri:valid_url});
+        });
+
+        it("should return 'false' when the parameter is invalid", function(){
+            var invalid_url = 'abc';
+            expect(rc.setAuthorizationServer(invalid_url)).toBe(false);
+            expect(rc.setAuthorizationServer(null)).toBe(false);
+            expect(rc.setAuthorizationServer()).toBe(false);
+        });
+    });
+
 });

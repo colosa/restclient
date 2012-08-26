@@ -36,9 +36,6 @@
         return this;
     };
 
-    // Turn on 'useRelativeURL' to support relative url request
-    RestClient.useRelativeURL = false;
-
     // Turn off 'needsAuthorization' to avoid send authorization headers
     RestClient.needsAuthorization = true;
 
@@ -80,9 +77,19 @@
     };
 
     // Setting the Server URL to consume REST
-    RestClient.setServerUrl = function(url){
-        this.server.rest_url = (url !== 'undefined') ? url : null;
-        this.useRelativeURL = true;
+    RestClient.setAuthorizationServer = function(url) {
+        var result = true;
+        if (typeof url === 'undefined' || url === null) {
+            result = false;
+        } else {
+            var reg_url = /(http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
+            if (url.match(reg_url)) {
+                this.server.rest_auth_uri = url;
+            } else {
+                result = false;
+            }
+        }
+        return result;
     };
 
     /**
