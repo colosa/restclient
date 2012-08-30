@@ -1,11 +1,10 @@
 language: node_js
 node_js:
   - 0.8
-  - 0.6
 after_script:
   - "npm install -g jasmine-node jshint"
   - "jshint restclient.js"
   - "jasmine-node --matchall --verbose spec"
 notifications:
   email:
-    - aim@qennix.com
+    - iam@qennix.com

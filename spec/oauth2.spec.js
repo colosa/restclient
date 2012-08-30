@@ -9,12 +9,12 @@ var RestClient = require('../restclient.js');
 
 describe("RestClient.js - OAuth2 Capabilities", function(){
 
-    var rc = RestClient;
+    var rc;
 
     describe ("Authorization Method: 'setClient'", function(){
 
         beforeEach(function(){
-            rc.reset();
+            rc = new RestClient();
         });
 
         var test_client;
@@ -34,7 +34,7 @@ describe("RestClient.js - OAuth2 Capabilities", function(){
     describe ("Authorization Method: 'setGrantType'", function(){
 
         beforeEach(function(){
-            rc.reset();
+            rc = new RestClient();
         });
 
         it("should accept 'code' grant type", function(){
