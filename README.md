@@ -16,4 +16,4 @@ Requirements
 
 - Status -
 ------------
-Not functional yet!. This project is under development.
+Functional!!! This project is still under development, but you can use it.

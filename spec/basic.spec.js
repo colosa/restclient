@@ -1,16 +1,9 @@
-/**
- * Created with JetBrains WebStorm.
- * User: qennix
- * Date: 8/25/12
- * Time: 1:50 AM
- */
-
 var RestClient = require('../restclient.js');
-describe("RestClient.js - Basic Functions",function(){
+describe("RestClient.js - Basic Functions", function () {
 
     var rc = new RestClient();
 
-    it ("Reset method should initialize object", function(){
+    it("Reset method should initialize object", function () {
 
         rc.authorization.aa = 'aa';
         rc.server.bb = 'bb';
@@ -22,6 +15,7 @@ describe("RestClient.js - Basic Functions",function(){
         expect(rc.reset().headers).toEqual({});
         expect(rc.reset().response).toEqual({});
         expect(rc.reset().needsAuthorization).toBe(true);
+        expect(rc.reset().authorizationType).toBe('none');
 
     });
 

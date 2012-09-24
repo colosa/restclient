@@ -3,5 +3,4 @@
 .project
 .idea/
 node_modules/
-Rakefile
 .npmignore

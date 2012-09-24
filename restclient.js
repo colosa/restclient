@@ -171,7 +171,7 @@ var RCBase64 = {
 };
 /**
  * @class RestClient
- * REST Client written in JS
+ * Little REST Client written in JS
  *
  * @constructor
  * Create the RestClient namespace and object
@@ -183,7 +183,7 @@ RestClient = function () {
      * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.1';
+    this.VERSION = '0.1.2';
     /**
      * Stores the authorization variables
      * @type {Object}
@@ -607,7 +607,6 @@ RestClient.prototype.consume = function (operation, url, data, id) {
  * @event
  */
 RestClient.prototype.RestSuccess = function (method, data) {
-    console.log(method);
 };
 
 /**
@@ -617,17 +616,14 @@ RestClient.prototype.RestSuccess = function (method, data) {
  * @event
  */
 RestClient.prototype.RestFailure = function (method, data) {
-    console.log(method);
 };
 
 /**
- * Event is called when the REST request has failed
- * @param method
- * @param data
+ * Event is called when the Request has failed
+ * @param {Object} data Error Response
  * @event
  */
 RestClient.prototype.RequestFailure = function (data) {
-    console.log(data);
 };
 
 

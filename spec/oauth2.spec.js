@@ -1,19 +1,12 @@
-/**
- * Created with JetBrains WebStorm.
- * User: qennix
- * Date: 8/22/12
- * Time: 5:23 PM
- */
-
 var RestClient = require('../restclient.js');
 
-describe("RestClient.js - OAuth2 Capabilities", function(){
+describe("RestClient.js - OAuth2 Capabilities", function () {
 
     var rc;
 
-    describe ("Authorization Method: 'setClient'", function(){
+    describe("Authorization Method: 'setClient'", function () {
 
-        beforeEach(function(){
+        beforeEach(function () {
             rc = new RestClient();
         });
 

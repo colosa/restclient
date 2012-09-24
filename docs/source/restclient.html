@@ -188,7 +188,7 @@ var RCBase64 = {
 };
 <span id='RestClient-method-constructor'><span id='RestClient'>/**
 </span></span> * @class RestClient
- * REST Client written in JS
+ * Little REST Client written in JS
  *
  * @constructor
  * Create the RestClient namespace and object
@@ -200,7 +200,7 @@ RestClient = function () {
 </span>     * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.1';
+    this.VERSION = '0.1.2';
 <span id='RestClient-property-authorization'>    /**
 </span>     * Stores the authorization variables
      * @type {Object}
@@ -560,7 +560,8 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         response = {},
         body,
         prepareUrl,
-        self;
+        self,
+        error;
 
     if (operation === 'update' || operation === 'delete') {
         prepareUrl = url + &quot;/&quot; +  id;
@@ -582,7 +583,9 @@ RestClient.prototype.consume = function (operation, url, data, id) {
             xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Bearer &quot; +
                 this.authorization.access_token);
         } else {
-            return &quot;error&quot;; //TODO Create error object to send to client
+            error = {success: false, msg: 'Access Token not defined'};
+            this.RequestFailure(error);
+            return JSON.stringify(error);
         }
         break;
     }
@@ -603,6 +606,12 @@ RestClient.prototype.consume = function (operation, url, data, id) {
 
     xhr.setRequestHeader(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
     body = (data) ? this.toParams(data) : '';
+
+    //Insert Headers
+    _.each(this.headers, function (value, key) {
+        xhr.setRequestHeader(key, value);
+    });
+
     xhr.send(body);
 
     return response;
@@ -615,7 +624,6 @@ RestClient.prototype.consume = function (operation, url, data, id) {
  * @event
  */
 RestClient.prototype.RestSuccess = function (method, data) {
-    console.log(method);
 };
 
 <span id='RestClient-event-RestFailure'>/**
@@ -625,7 +633,14 @@ RestClient.prototype.RestSuccess = function (method, data) {
  * @event
  */
 RestClient.prototype.RestFailure = function (method, data) {
-    console.log(method);
+};
+
+<span id='RestClient-event-RequestFailure'>/**
+</span> * Event is called when the Request has failed
+ * @param {Object} data Error Response
+ * @event
+ */
+RestClient.prototype.RequestFailure = function (data) {
 };
 
 
