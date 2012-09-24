@@ -15,298 +15,491 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">//	restclient.js 0.1.0
+  <pre class="prettyprint lang-js"><span id='RCBase64'>/**
+</span> * @class RCBase64
+ * This class Encode and Decode Base64
+ * @singleton
+ */
+var RCBase64 = {
+<span id='RCBase64-property-keyStr'>    /**
+</span>     * @private
+     * @type {String} Valid Characters for Base64
+     */
+    keyStr : &quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot; +
+        &quot;abcdefghijklmnopqrstuvwxyz0123456789+/=&quot;,
 
-//  (c) 2012 Enrique Ponce de Leon, Qennix
-//  RestClient.js may be distributed under the MIT license.
-//  For all details and documentation:
-//  http://qennix.github.com/restclient
+    //
+<span id='RCBase64-method-encode'>    /**
+</span>     * Public method for encoding
+     * @param input
+     * @return {String}
+     */
+    encode : function (input) {
+        var output = &quot;&quot;,
+            chr1,
+            chr2,
+            chr3,
+            enc1,
+            enc2,
+            enc3,
+            enc4,
+            i = 0;
 
-(function (){
+        input = this._utf8_encode(input);
 
-    // Keeps a reference of the window or global object
-    var root = this;
+        while (i &lt; input.length) {
 
-    //Include a reference to 'underscore' function
-    var _ = root._;
+            chr1 = input.charCodeAt(i++);
+            chr2 = input.charCodeAt(i++);
+            chr3 = input.charCodeAt(i++);
 
-    //Include 'underscore' module in server mode
-    if (!_ &amp;&amp; typeof require !== 'undefined'){
-        _ = require('underscore');
+            enc1 = chr1 &gt;&gt; 2;
+            enc2 = ((chr1 &amp; 3) &lt;&lt; 4) | (chr2 &gt;&gt; 4);
+            enc3 = ((chr2 &amp; 15) &lt;&lt; 2) | (chr3 &gt;&gt; 6);
+            enc4 = chr3 &amp; 63;
+
+            if (isNaN(chr2)) {
+                enc3 = enc4 = 64;
+            } else if (isNaN(chr3)) {
+                enc4 = 64;
+            }
+
+            output = output +
+                this.keyStr.charAt(enc1) + this.keyStr.charAt(enc2) +
+                this.keyStr.charAt(enc3) + this.keyStr.charAt(enc4);
+
+        }
+
+        return output;
+    },
+
+<span id='RCBase64-method-decode'>    /**
+</span>     * Public method for decoding
+     * @param input
+     * @return {String}
+     */
+    decode : function (input) {
+        var output = &quot;&quot;,
+            chr1,
+            chr2,
+            chr3,
+            enc1,
+            enc2,
+            enc3,
+            enc4,
+            i = 0;
+
+        input = input.replace(/[^A-Za-z0-9\+\/\=]/g, &quot;&quot;);
+
+        while (i &lt; input.length) {
+
+            enc1 = this.keyStr.indexOf(input.charAt(i++));
+            enc2 = this.keyStr.indexOf(input.charAt(i++));
+            enc3 = this.keyStr.indexOf(input.charAt(i++));
+            enc4 = this.keyStr.indexOf(input.charAt(i++));
+
+            chr1 = (enc1 &lt;&lt; 2) | (enc2 &gt;&gt; 4);
+            chr2 = ((enc2 &amp; 15) &lt;&lt; 4) | (enc3 &gt;&gt; 2);
+            chr3 = ((enc3 &amp; 3) &lt;&lt; 6) | enc4;
+
+            output = output + String.fromCharCode(chr1);
+
+            if (enc3 !== 64) {
+                output = output + String.fromCharCode(chr2);
+            }
+            if (enc4 !== 64) {
+                output = output + String.fromCharCode(chr3);
+            }
+
+        }
+
+        output = this.utf8_decode(output);
+
+        return output;
+
+    },
+
+<span id='RCBase64-method-utf8_encode'>    /**
+</span>     * private method for UTF-8 encoding
+     * @param string
+     * @return {String}
+     * @private
+     */
+    utf8_encode : function (string) {
+        string = string.replace(/\r\n/g, &quot;\n&quot;);
+        var utftext = &quot;&quot;, n, c;
+
+        for (n = 0; n &lt; string.length; n++) {
+
+            c = string.charCodeAt(n);
+
+            if (c &lt; 128) {
+                utftext += String.fromCharCode(c);
+            } else if ((c &gt; 127) &amp;&amp; (c &lt; 2048)) {
+                utftext += String.fromCharCode((c &gt;&gt; 6) | 192);
+                utftext += String.fromCharCode((c &amp; 63) | 128);
+            } else {
+                utftext += String.fromCharCode((c &gt;&gt; 12) | 224);
+                utftext += String.fromCharCode(((c &gt;&gt; 6) &amp; 63) | 128);
+                utftext += String.fromCharCode((c &amp; 63) | 128);
+            }
+
+        }
+
+        return utftext;
+    },
+
+<span id='RCBase64-method-utf8_decode'>    /**
+</span>     * private method for UTF-8 decoding
+     * @param utftext
+     * @return {String}
+     * @private
+     */
+    utf8_decode : function (utftext) {
+        var string = &quot;&quot;,
+            i = 0,
+            c = 0,
+            c2 = 0,
+            c3 = 0;
+
+        while (i &lt; utftext.length) {
+
+            c = utftext.charCodeAt(i);
+
+            if (c &lt; 128) {
+                string += String.fromCharCode(c);
+                i++;
+            } else if ((c &gt; 191) &amp;&amp; (c &lt; 224)) {
+                c2 = utftext.charCodeAt(i + 1);
+                string += String.fromCharCode(((c &amp; 31) &lt;&lt; 6) | (c2 &amp; 63));
+                i += 2;
+            } else {
+                c2 = utftext.charCodeAt(i + 1);
+                c3 = utftext.charCodeAt(i + 2);
+                string += String.fromCharCode(((c &amp; 15) &lt;&lt; 12) |
+                    ((c2 &amp; 63) &lt;&lt; 6) | (c3 &amp; 63));
+                i += 3;
+            }
+
+        }
+
+        return string;
     }
-
-    // Create the RestClient namespace and object;
-    var RestClient;
-    if (typeof exports !== 'undefined'){
-        RestClient = exports;
-    } else {
-        RestClient = root.RestClient = {};
-    }
-
-    //Define Container Objects
-    RestClient.authorization = {};
-    RestClient.server = {};
-    RestClient.body = {};
-    RestClient.headers = {};
-
-    // Turn on 'useRelativeURL' to support relative url request
-    RestClient.useRelativeURL = false;
-
-    // Turn off 'needsAuthorization' to avoid send authorization headers
-    RestClient.needsAuthorization = true;
-
-    // Define a pointer to jQuery object
-    RestClient.$ = root.jQuery;
-
-    // Setting the REST methods accepted
-    RestClient.RESTMethods = {
+};
+<span id='RestClient-method-constructor'><span id='RestClient'>/**
+</span></span> * @class RestClient
+ * (c) 2012 Enrique Ponce de Leon, Qennix
+ * RestClient.js may be distributed under the MIT license.
+ * For all details and documentation: http://qennix.github.com/restclient
+ *
+ * @constructor
+ * Create the RestClient namespace and object
+ * @return {RestClient}
+ */
+var RestClient;
+RestClient = function () {
+<span id='RestClient-property-VERSION'>    /**
+</span>     * Library's Version
+     * @type {String}
+     */
+    this.VERSION = '0.1.1';
+<span id='RestClient-property-authorization'>    /**
+</span>     * Stores the authorization variables
+     * @type {Object}
+     */
+    this.authorization = {};
+<span id='RestClient-property-server'>    /**
+</span>     * Stores the server variables
+     * @type {Object}
+     */
+    this.server = {};
+<span id='RestClient-property-response'>    /**
+</span>     * Stores the response variables
+     * @type {Object}
+     */
+    this.response = {};
+<span id='RestClient-property-headers'>    /**
+</span>     * Stores the header variables
+     * @type {Object}
+     */
+    this.headers = {};
+<span id='RestClient-property-needsAuthorization'>    /**
+</span>     * Stores the authorization mode
+     * @type {Boolean}
+     */
+    this.needsAuthorization = true;
+<span id='RestClient-property-authorizationType'>    /**
+</span>     * Stores the authorization type. Values Accepted: none, basic, oauth2
+     * @type {String}
+     */
+    this.authorizationType = 'none';
+<span id='RestClient-property-RESTMethods'>    /**
+</span>     * Stores the REST method/verbs accepted
+     * @type {Object}
+     */
+    this.RESTMethods = {
         'create' : 'POST',
         'read' : 'GET',
         'update' : 'PUT',
         'delete' : 'DELETE'
     };
-
-    // Setting the OAUTH2 Grant Types
-    RestClient.OAUTH2GrantTypes = {
+<span id='RestClient-property-OAUTH2GrantTypes'>    /**
+</span>     * Setting the OAUTH2 Grant Types
+     * @type {Object}
+     */
+    this.OAUTH2GrantTypes = {
         'code' : 'authorization_code',
         'implicit' : 'token',
         'user' : 'password',
         'client' : 'client_credentials',
         'refresh' : 'refresh_token'
     };
+    return this;
+};
 
-    // Setting the client authorization credentials
-    RestClient.setClient = function (client_id, client_secret, client_url) {
-        this.authorization.client_id = client_id;
-        this.authorization.client_secret = client_secret;
-        this.authorization.client_url = (client_url !== 'undefined') ? client_url
-            : null;
-        return this;
-    };
+//Define Module to be used in server side (Node.js)
+if (typeof exports !== 'undefined') {
+    module.exports = RestClient;
+}
 
-    // Setting the OAuth2 Grant Type and Data
-    RestClient.setGrantType = function (type, data) {
-        //return 'works!';
-        this.authorization.grant_type = (this.OAUTH2GrantTypes[type] !== 'undefined') ? this.OAUTH2GrantTypes[type]
-            : null;
-        //this.authorization.apply(this, data);
-        return this;
-    };
+<span id='RestClient-method-reset'>/**
+</span> * Resets the RestClient
+ * @return {RestClient}
+ */
+RestClient.prototype.reset = function () {
+    this.authorization = {};
+    this.server = {};
+    this.response = {};
+    this.headers = {};
+    this.needsAuthorization = true;
+    this.authorizationType = 'none';
+    return this;
+};
+<span id='RestClient-method-setClient'>/**
+</span> * Setting the client authorization credentials
+ * @param {String} client_id Client Identificator
+ * @param {String} client_secret Client Secret or Password
+ * @param {String} client_url Authorization URL
+ * @return {RestClient}
+ */
+RestClient.prototype.setClient = function (client_id, client_secret,
+                                           client_url) {
+    this.authorization.client_id = client_id;
+    this.authorization.client_secret = client_secret;
+    this.authorization.client_url = (client_url !== 'undefined') ? client_url
+        : null;
+    return this;
+};
 
-    // Setting the Server URL to consume REST
-    RestClient.setServerUrl = function(url){
-        this.server.rest_url = (url !== 'undefined') ? url : null;
-        this.useRelativeURL = true;
-    };
+<span id='RestClient-method-setGrantType'>/**
+</span> * Setting the OAuth2 Grant Type and Data
+ * @param {String} type Grant Type
+ * @param {Object} data
+ * @return {RestClient}
+ */
+RestClient.prototype.setGrantType = function (type, data) {
+    this.authorization.grant_type = (this.OAUTH2GrantTypes[type] !==
+        'undefined') ? this.OAUTH2GrantTypes[type]
+        : null;
+    this.authorization = _.extend(this.authorization, data);
+    return this;
+};
 
-<span id='RestClient-Base64'>    /**
-</span>     *  Include Base64 object
-     *  Base64 encode / decode
-     *  http://www.webtoolkit.info/
-     *
-     **/
-    RestClient.Base64 = {
-
-        // private property
-        _keyStr : &quot;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=&quot;,
-
-        // public method for encoding
-        encode : function (input) {
-            var output = &quot;&quot;;
-            var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
-            var i = 0;
-
-            input = this._utf8_encode(input);
-
-            while (i &lt; input.length) {
-
-                chr1 = input.charCodeAt(i++);
-                chr2 = input.charCodeAt(i++);
-                chr3 = input.charCodeAt(i++);
-
-                enc1 = chr1 &gt;&gt; 2;
-                enc2 = ((chr1 &amp; 3) &lt;&lt; 4) | (chr2 &gt;&gt; 4);
-                enc3 = ((chr2 &amp; 15) &lt;&lt; 2) | (chr3 &gt;&gt; 6);
-                enc4 = chr3 &amp; 63;
-
-                if (isNaN(chr2)) {
-                    enc3 = enc4 = 64;
-                } else if (isNaN(chr3)) {
-                    enc4 = 64;
-                }
-
-                output = output +
-                    this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
-                    this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
-
-            }
-
-            return output;
-        },
-
-        // public method for decoding
-        decode : function (input) {
-            var output = &quot;&quot;;
-            var chr1, chr2, chr3;
-            var enc1, enc2, enc3, enc4;
-            var i = 0;
-
-            input = input.replace(/[^A-Za-z0-9\+\/\=]/g, &quot;&quot;);
-
-            while (i &lt; input.length) {
-
-                enc1 = this._keyStr.indexOf(input.charAt(i++));
-                enc2 = this._keyStr.indexOf(input.charAt(i++));
-                enc3 = this._keyStr.indexOf(input.charAt(i++));
-                enc4 = this._keyStr.indexOf(input.charAt(i++));
-
-                chr1 = (enc1 &lt;&lt; 2) | (enc2 &gt;&gt; 4);
-                chr2 = ((enc2 &amp; 15) &lt;&lt; 4) | (enc3 &gt;&gt; 2);
-                chr3 = ((enc3 &amp; 3) &lt;&lt; 6) | enc4;
-
-                output = output + String.fromCharCode(chr1);
-
-                if (enc3 !== 64) {
-                    output = output + String.fromCharCode(chr2);
-                }
-                if (enc4 !== 64) {
-                    output = output + String.fromCharCode(chr3);
-                }
-
-            }
-
-            output = this._utf8_decode(output);
-
-            return output;
-
-        },
-
-        // private method for UTF-8 encoding
-        _utf8_encode : function (string) {
-            string = string.replace(/\r\n/g,&quot;\n&quot;);
-            var utftext = &quot;&quot;;
-
-            for (var n = 0; n &lt; string.length; n++) {
-
-                var c = string.charCodeAt(n);
-
-                if (c &lt; 128) {
-                    utftext += String.fromCharCode(c);
-                }
-                else if((c &gt; 127) &amp;&amp; (c &lt; 2048)) {
-                    utftext += String.fromCharCode((c &gt;&gt; 6) | 192);
-                    utftext += String.fromCharCode((c &amp; 63) | 128);
-                }
-                else {
-                    utftext += String.fromCharCode((c &gt;&gt; 12) | 224);
-                    utftext += String.fromCharCode(((c &gt;&gt; 6) &amp; 63) | 128);
-                    utftext += String.fromCharCode((c &amp; 63) | 128);
-                }
-
-            }
-
-            return utftext;
-        },
-
-        // private method for UTF-8 decoding
-        _utf8_decode : function (utftext) {
-            var string = &quot;&quot;;
-            var i = 0;
-            var c = 0, c2 = 0, c3 = 0;
-
-            while ( i &lt; utftext.length ) {
-
-                c = utftext.charCodeAt(i);
-
-                if (c &lt; 128) {
-                    string += String.fromCharCode(c);
-                    i++;
-                }
-                else if((c &gt; 191) &amp;&amp; (c &lt; 224)) {
-                    c2 = utftext.charCodeAt(i+1);
-                    string += String.fromCharCode(((c &amp; 31) &lt;&lt; 6) | (c2 &amp; 63));
-                    i += 2;
-                }
-                else {
-                    c2 = utftext.charCodeAt(i+1);
-                    c3 = utftext.charCodeAt(i+2);
-                    string += String.fromCharCode(((c &amp; 15) &lt;&lt; 12) | ((c2 &amp; 63) &lt;&lt; 6) | (c3 &amp; 63));
-                    i += 3;
-                }
-
-            }
-
-            return string;
+<span id='RestClient-method-setAuthorizationServer'>/**
+</span> * Setting the Server URL to consume REST
+ * @param {String} url Authorization URL
+ * @return {Boolean}
+ */
+RestClient.prototype.setAuthorizationServer = function (url) {
+    var result = true,
+        reg_url;
+    if (typeof url === 'undefined' || url === null) {
+        result = false;
+    } else {
+        reg_url = /(http|https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&amp;%@!\-\/]))?/;
+        if (url.match(reg_url)) {
+            this.server.rest_auth_uri = url;
+        } else {
+            result = false;
         }
+    }
+    return result;
+};
 
-    };
 
-    // Set the authorization mode true=needs authorization, false=don't need authorization 
-    RestClient.setAuthorizationMode = function(value){
-        this.needsAuthorization = (value) ? value : true;
-        return this;
-    };
+<span id='RestClient-method-toParams'>/**
+</span> * Convert an Object to Key/Value string
+ * @param {Object} obj Input Object
+ * @return {String}
+ */
+RestClient.prototype.toParams = function (obj) {
+    //var obj = this;
+    var keys = _.keys(obj),
+        out = [];
+    _.each(keys, function (key) {
+        out.push(key + '=' + obj[key]);
+    });
+    return out.join('&amp;');
+};
 
-    // Implement proxy to jQuery ajax functions
-    RestClient.proxy = function () {
-        return RestClient.$.ajax.apply(RestClient.$, arguments);
-    };
-
-    // Execute the REST request
-    RestClient.consume = function (method, options, callback, authorize) {
-
-        var needsAuthorization = (authorize !== 'undefined')? authorize : true;
-        var type = this.RESTMethods[method];
-
-        var params = {type: type, dataType: 'json'};
-
-        params.url = (options.url) ? options.url : this.server.rest_url;
-
-        if (needsAuthorization) {
-            var basicHash = this.Base64.encode(this.authorization.client_id + ':' + this.authorization.client_secrect);
-            this.headers.Authorization = 'Basic ' + basicHash;
+<span id='RestClient-method-createXHR'>/**
+</span> * Create an object XmlHttpRequest or returns false if fails
+ * @return {*}
+ */
+RestClient.prototype.createXHR = function () {
+    var httpRequest;
+    if (window.XMLHttpRequest) {
+        httpRequest = new XMLHttpRequest();
+    } else if (window.ActiveXObject) {
+        try {
+            httpRequest = new ActiveXObject(&quot;MSXML2.XMLHTTP&quot;);
+        } catch (e) {
+            try {
+                httpRequest = new ActiveXObject(&quot;Microsoft.XMLHTTP&quot;);
+            } catch (ex) {}
         }
+    }
+    if (!httpRequest) {
+        return false;
+    }
+    return httpRequest;
+};
 
-        var data = {};
-        if (this.authorization.grant_type){
-            data.grant_type = this.authorization.grant_type;
-            switch(this.authorization.grant_type){
-                case 'authorization_code':
-                    data.code = this.authorization.code;
-                    break;
-                case 'token':
-                    data.token = this.authorization.token;
-                    break;
-                case 'password':
-                    data.username = this.authorization.username;
-                    data.password = this.authorization.password;
-                    break;
-                case 'client_credentials':
-                    data.client_id = this.authorization.client_id;
-                    data.client_id = this.authorization.client_secret;
-                    break;
-                case 'refresh_token':
-                    data.refresh_token = this.authorization.refresh_token;
-                    break;
+//
+<span id='RestClient-method-authorize'>/**
+</span> * Request an authorization
+ * @param {Object} config
+ * @return {Boolean}
+ */
+RestClient.prototype.authorize = function (config) {
+    var self = this,
+        success = false,
+        method = 'create',
+        type = this.RESTMethods[method],
+        basicHash,
+        xhr,
+        body,
+        rcBase64 = RCBase64;
 
+    basicHash = rcBase64.encode(this.authorization.client_id + ':' +
+        this.authorization.client_secret);
+
+    xhr = this.createXHR();
+    xhr.open(type, this.server.rest_auth_uri, false);
+
+    xhr.onreadystatechange = function () {
+        if (config.ready) {
+            config.ready(xhr);
+        }
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                self.response = _.extend(self.response, response);
+                success = true;
+                if (config.success) {
+                    config.success(xhr);
+                }
+            } else {
+                if (config.failure) {
+                    config.failure(xhr);
+                }
             }
         }
-        data.apply(this, options.data);
-        params.data = data;
-
-        params.headers = this.headers;
-        params.success = callback;
-
-        return RestClient.proxy(_.extend(params, options));
     };
 
-    // Function to be implemented/replace the Backbone.js sync function
-    RestClient.sync = function (method, model, options) {
-        // TODO: implement this function
-        return this;
-    };
+    body = {};
 
-}).call(this);
+    if (this.authorization.grant_type) {
+        body.grant_type = this.authorization.grant_type;
+        switch (this.authorization.grant_type) {
+        case 'authorization_code':
+            body.code = this.authorization.code;
+            break;
+        case 'token':
+            body.token = this.authorization.token;
+            break;
+        case 'password':
+            body.username = this.authorization.username;
+            body.password = this.authorization.password;
+            break;
+        case 'client_credentials':
+            body.client_id = this.authorization.client_id;
+            body.client_id = this.authorization.client_secret;
+            break;
+        case 'refresh_token':
+            body.refresh_token = this.authorization.refresh_token;
+            break;
+        }
+    }
+
+    if (this.needsAuthorization) {
+        xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Basic &quot; + basicHash);
+    }
+
+    xhr.setRequestHeader(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
+
+    //Insert Headers
+    _.each(this.headers, function (value, key) {
+        xhr.setRequestHeader(key, value);
+    });
+
+    xhr.send(this.toParams(body));
+
+    return success;
+};
+
+<span id='RestClient-method-setHeader'>/**
+</span> * Add HTML header information to send though XHR
+ * @param {String} name Name Field
+ * @param {String} value Value Field
+ * @return {Boolean}
+ */
+RestClient.prototype.setHeader = function (name, value) {
+    var response = true,
+        addObj;
+    if (name &amp;&amp; value) {
+        addObj = JSON.parse('{&quot;' + name + '&quot; :  &quot;' + value + '&quot;}');
+        this.headers = _.extend(this.headers, addObj);
+    } else {
+        response = false;
+    }
+    return response;
+};
+
+<span id='RestClient-method-setAuthorizationMode'>/**
+</span> * Set Authorization Mode
+ * @param {Boolean} value Authorization Mode
+ * @return {RestClient}
+ */
+RestClient.prototype.setAuthorizationMode = function (value) {
+    if (_.isBoolean(value)) {
+        this.needsAuthorization = value;
+    }
+    return this;
+};
+
+<span id='RestClient-method-getVersion'>/**
+</span> * Returns the library version
+ * @return {String} RestClient Version
+ */
+RestClient.prototype.getVersion = function () {
+    return this.VERSION;
+};
+<span id='RestClient-method-setAuthorizationType'>/**
+</span> * Sets the authorization type
+ * @param {String} type Valid Authorization Type
+ * @return {Boolean}
+ */
+RestClient.prototype.setAuthorizationType = function (type) {
+    var acceptedTypes = {none: 1, basic: 1, oauth2: 1},
+        success = false;
+    if (acceptedTypes[type]) {
+        this.authorizationType = type;
+        success = true;
+    }
+    return success;
+};
+
 </pre>
 </body>
 </html>
