@@ -543,7 +543,8 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         response = {},
         body,
         prepareUrl,
-        self;
+        self,
+        error;
 
     if (operation === 'update' || operation === 'delete') {
         prepareUrl = url + "/" +  id;
@@ -565,7 +566,9 @@ RestClient.prototype.consume = function (operation, url, data, id) {
             xhr.setRequestHeader("Authorization", "Bearer " +
                 this.authorization.access_token);
         } else {
-            return "error"; //TODO Create error object to send to client
+            error = {success: false, msg: 'Access Token not defined'};
+            this.RequestFailure(error);
+            return JSON.stringify(error);
         }
         break;
     }
@@ -586,6 +589,12 @@ RestClient.prototype.consume = function (operation, url, data, id) {
 
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     body = (data) ? this.toParams(data) : '';
+
+    //Insert Headers
+    _.each(this.headers, function (value, key) {
+        xhr.setRequestHeader(key, value);
+    });
+
     xhr.send(body);
 
     return response;
@@ -609,6 +618,16 @@ RestClient.prototype.RestSuccess = function (method, data) {
  */
 RestClient.prototype.RestFailure = function (method, data) {
     console.log(method);
+};
+
+/**
+ * Event is called when the REST request has failed
+ * @param method
+ * @param data
+ * @event
+ */
+RestClient.prototype.RequestFailure = function (data) {
+    console.log(data);
 };
 
 
