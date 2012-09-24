@@ -480,4 +480,5 @@ RestClient.prototype.setAuthorizationType = function (type) {
 //Define Module to be used in server side (Node.js)
 if (typeof exports !== 'undefined') {
     module.exports = RestClient;
+    var _ = require('underscore');
 }
