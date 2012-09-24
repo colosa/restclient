@@ -45,7 +45,7 @@ var RCBase64 = {
             enc4,
             i = 0;
 
-        input = this._utf8_encode(input);
+        input = this.utf8_encode(input);
 
         while (i &lt; input.length) {
 
@@ -188,9 +188,7 @@ var RCBase64 = {
 };
 <span id='RestClient-method-constructor'><span id='RestClient'>/**
 </span></span> * @class RestClient
- * (c) 2012 Enrique Ponce de Leon, Qennix
- * RestClient.js may be distributed under the MIT license.
- * For all details and documentation: http://qennix.github.com/restclient
+ * REST Client written in JS
  *
  * @constructor
  * Create the RestClient namespace and object
@@ -256,11 +254,6 @@ RestClient = function () {
     };
     return this;
 };
-
-//Define Module to be used in server side (Node.js)
-if (typeof exports !== 'undefined') {
-    module.exports = RestClient;
-}
 
 <span id='RestClient-method-reset'>/**
 </span> * Resets the RestClient
@@ -333,7 +326,6 @@ RestClient.prototype.setAuthorizationServer = function (url) {
  * @return {String}
  */
 RestClient.prototype.toParams = function (obj) {
-    //var obj = this;
     var keys = _.keys(obj),
         out = [];
     _.each(keys, function (key) {
@@ -378,10 +370,9 @@ RestClient.prototype.authorize = function (config) {
         type = this.RESTMethods[method],
         basicHash,
         xhr,
-        body,
-        rcBase64 = RCBase64;
+        body;
 
-    basicHash = rcBase64.encode(this.authorization.client_id + ':' +
+    basicHash = RCBase64.encode(this.authorization.client_id + ':' +
         this.authorization.client_secret);
 
     xhr = this.createXHR();
@@ -500,6 +491,148 @@ RestClient.prototype.setAuthorizationType = function (type) {
     return success;
 };
 
-</pre>
+<span id='RestClient-method-setBasicCredentials'>/**
+</span> * Set the user and password for the basic authentication method
+ * @param {String} username
+ * @param {String} password
+ * @return {RestClient}
+ */
+RestClient.prototype.setBasicCredentials = function (username, password) {
+    this.authorization.basic_user = username;
+    this.authorization.basic_password = password;
+    return this;
+};
+
+<span id='RestClient-method-getCall'>/**
+</span> * Consume REST through GET Method
+ * @param {String} url REST Endpoint
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.getCall = function (url, data) {
+    return this.consume('read', url, data, null);
+};
+
+<span id='RestClient-method-postCall'>/**
+</span> * Consume REST through POST Method
+ * @param {String} url REST Endpoint
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.postCall = function (url, data) {
+    return this.consume('create', url, data, null);
+};
+
+<span id='RestClient-method-putCall'>/**
+</span> * Consume REST through PUT Method
+ * @param {String} url REST Endpoint
+ * @param {String} id Identificator
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.putCall = function (url, id, data) {
+    return this.consume('update', url, data, id);
+};
+
+<span id='RestClient-method-deleteCall'>/**
+</span> * Consume REST through DELETE Method
+ * @param {String} url REST Endpoint
+ * @param {String} id Identificator
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.deleteCall = function (url, id, data) {
+    return this.consume('delete', url, data, id);
+};
+
+<span id='RestClient-method-consume'>/**
+</span> * Consume  REST method
+ * @param {String} operation REST Verb/Method
+ * @param {String} url REST Endpoint
+ * @param {Object} data
+ * @param {String} id Optional Indentificator
+ * @return {Object}
+ */
+RestClient.prototype.consume = function (operation, url, data, id) {
+    var basicHash,
+        xhr,
+        type,
+        response = {},
+        body,
+        prepareUrl,
+        self;
+
+    if (operation === 'update' || operation === 'delete') {
+        prepareUrl = url + &quot;/&quot; +  id;
+    } else {
+        prepareUrl = url;
+    }
+
+    xhr = this.createXHR();
+    switch (this.authorizationType) {
+    case 'none':
+        break;
+    case 'basic':
+        basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
+            this.authorization.basic_user);
+        xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Basic &quot; + basicHash);
+        break;
+    case 'oauth2':
+        if (this.authorization.access_token) {
+            xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Bearer &quot; +
+                this.authorization.access_token);
+        } else {
+            return &quot;error&quot;; //TODO Create error object to send to client
+        }
+        break;
+    }
+    type = this.RESTMethods[operation];
+    xhr.open(type, prepareUrl, false);
+    self = this;
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                response = JSON.parse(xhr.responseText);
+                self.RestSuccess(type, response);
+            } else {
+                response = JSON.parse(xhr.responseText);
+                self.RestFailure(type, response);
+            }
+        }
+    };
+
+    xhr.setRequestHeader(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
+    body = (data) ? this.toParams(data) : '';
+    xhr.send(body);
+
+    return response;
+};
+
+<span id='RestClient-event-RestSuccess'>/**
+</span> * Event is called when the REST request is successfully
+ * @param method
+ * @param data
+ * @event
+ */
+RestClient.prototype.RestSuccess = function (method, data) {
+    console.log(method);
+};
+
+<span id='RestClient-event-RestFailure'>/**
+</span> * Event is called when the REST request has failed
+ * @param method
+ * @param data
+ * @event
+ */
+RestClient.prototype.RestFailure = function (method, data) {
+    console.log(method);
+};
+
+
+//Define Module to be used in server side (Node.js)
+if (typeof exports !== 'undefined') {
+    module.exports = RestClient;
+    var _ = require('underscore');
+}</pre>
 </body>
 </html>

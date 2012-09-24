@@ -171,9 +171,7 @@ var RCBase64 = {
 };
 /**
  * @class RestClient
- * (c) 2012 Enrique Ponce de Leon, Qennix
- * RestClient.js may be distributed under the MIT license.
- * For all details and documentation: http://qennix.github.com/restclient
+ * REST Client written in JS
  *
  * @constructor
  * Create the RestClient namespace and object
@@ -311,7 +309,6 @@ RestClient.prototype.setAuthorizationServer = function (url) {
  * @return {String}
  */
 RestClient.prototype.toParams = function (obj) {
-    //var obj = this;
     var keys = _.keys(obj),
         out = [];
     _.each(keys, function (key) {
@@ -476,6 +473,144 @@ RestClient.prototype.setAuthorizationType = function (type) {
     }
     return success;
 };
+
+/**
+ * Set the user and password for the basic authentication method
+ * @param {String} username
+ * @param {String} password
+ * @return {RestClient}
+ */
+RestClient.prototype.setBasicCredentials = function (username, password) {
+    this.authorization.basic_user = username;
+    this.authorization.basic_password = password;
+    return this;
+};
+
+/**
+ * Consume REST through GET Method
+ * @param {String} url REST Endpoint
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.getCall = function (url, data) {
+    return this.consume('read', url, data, null);
+};
+
+/**
+ * Consume REST through POST Method
+ * @param {String} url REST Endpoint
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.postCall = function (url, data) {
+    return this.consume('create', url, data, null);
+};
+
+/**
+ * Consume REST through PUT Method
+ * @param {String} url REST Endpoint
+ * @param {String} id Identificator
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.putCall = function (url, id, data) {
+    return this.consume('update', url, data, id);
+};
+
+/**
+ * Consume REST through DELETE Method
+ * @param {String} url REST Endpoint
+ * @param {String} id Identificator
+ * @param {Object} data
+ * @return {Object} JSON Response
+ */
+RestClient.prototype.deleteCall = function (url, id, data) {
+    return this.consume('delete', url, data, id);
+};
+
+/**
+ * Consume  REST method
+ * @param {String} operation REST Verb/Method
+ * @param {String} url REST Endpoint
+ * @param {Object} data
+ * @param {String} id Optional Indentificator
+ * @return {Object}
+ */
+RestClient.prototype.consume = function (operation, url, data, id) {
+    var basicHash,
+        xhr,
+        type,
+        response = {},
+        body,
+        prepareUrl,
+        self;
+
+    if (operation === 'update' || operation === 'delete') {
+        prepareUrl = url + "/" +  id;
+    } else {
+        prepareUrl = url;
+    }
+
+    xhr = this.createXHR();
+    switch (this.authorizationType) {
+    case 'none':
+        break;
+    case 'basic':
+        basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
+            this.authorization.basic_user);
+        xhr.setRequestHeader("Authorization", "Basic " + basicHash);
+        break;
+    case 'oauth2':
+        if (this.authorization.access_token) {
+            xhr.setRequestHeader("Authorization", "Bearer " +
+                this.authorization.access_token);
+        } else {
+            return "error"; //TODO Create error object to send to client
+        }
+        break;
+    }
+    type = this.RESTMethods[operation];
+    xhr.open(type, prepareUrl, false);
+    self = this;
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                response = JSON.parse(xhr.responseText);
+                self.RestSuccess(type, response);
+            } else {
+                response = JSON.parse(xhr.responseText);
+                self.RestFailure(type, response);
+            }
+        }
+    };
+
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    body = (data) ? this.toParams(data) : '';
+    xhr.send(body);
+
+    return response;
+};
+
+/**
+ * Event is called when the REST request is successfully
+ * @param method
+ * @param data
+ * @event
+ */
+RestClient.prototype.RestSuccess = function (method, data) {
+    console.log(method);
+};
+
+/**
+ * Event is called when the REST request has failed
+ * @param method
+ * @param data
+ * @event
+ */
+RestClient.prototype.RestFailure = function (method, data) {
+    console.log(method);
+};
+
 
 //Define Module to be used in server side (Node.js)
 if (typeof exports !== 'undefined') {

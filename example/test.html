@@ -11,18 +11,26 @@
 <script>
     var rc = new RestClient();
 
-    rc.setClient('qennix','sample');
-    rc.setGrantType('user',{username: 'admin', password: 'admin'});
-    rc.setAuthorizationServer("http://scrumme.qennix.com/rest/oauth/token");
-    var x = rc.authorize({
-        success: function(xhr){
-            alert('Authorization OK');
-        },
-        failure: function(xhr){
-            alert('Error: ' + xhr.status);
-        }
-    });
-    console.log('Val=' + x);
+//    rc.setClient('qennix','sample');
+//    rc.setGrantType('user',{username: 'admin', password: 'admin'});
+//    rc.setAuthorizationServer("http://scrumme.qennix.com/rest/oauth/token");
+//    var x = rc.authorize({
+//        success: function(xhr){
+//            alert('Authorization OK');
+//        },
+//        failure: function(xhr){
+//            alert('Error: ' + xhr.status);
+//        }
+//    });
+//    console.log('Val=' + x);
+
+    rc.RestSuccess = function( method, data){
+        alert(method);
+    }
+
+    rc.setAuthorizationType('none');
+    rc.postCall('http://scrumme.qennix.com/rest/sample/access', {a:15});
+
 
 
 </script>
