@@ -536,7 +536,7 @@ RestClient.prototype.deleteCall = function (url, id, data) {
  * @param {String} id Optional Indentificator
  * @return {Object}
  */
-RestClient.prototype.consume = function (operation, url, data, id) {
+RestClient.prototype.consume = function (operation, url, data, id, options) {
     var basicHash,
         xhr,
         type,
@@ -579,7 +579,7 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 if (xhr.responseText !== '') {
-                  response = JSON.parse(xhr.responseText);
+                    response = JSON.parse(xhr.responseText);
                 } else {
                     response = xhr.responseText;
                 }
@@ -596,18 +596,13 @@ RestClient.prototype.consume = function (operation, url, data, id) {
     };
 
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    body = (data) ? this.toParams(data) : '';
 
     //Insert Headers
     _.each(this.headers, function (value, key) {
         xhr.setRequestHeader(key, value);
     });
 
-    if (body != '') {
-        body = "access_token=" + this.response.access_token + "&" + body;
-    } else {
-        body = "access_token=" + this.response.access_token
-    }
+    body = 'access_token=' + this.response.access_token + "&json=" + JSON.stringify(data);
 
     xhr.send(body);
 
