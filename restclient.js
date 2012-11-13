@@ -562,9 +562,9 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         xhr.setRequestHeader("Authorization", "Basic " + basicHash);
         break;
     case 'oauth2':
-        if (this.authorization.access_token) {
-            xhr.setRequestHeader("Authorization", "Bearer " +
-                this.authorization.access_token);
+        if (this.response.access_token) {
+            //xhr.setRequestHeader("Authorization", "Bearer " +
+            //    this.response.access_token);
         } else {
             error = {success: false, msg: 'Access Token not defined'};
             this.RequestFailure(error);
@@ -578,10 +578,18 @@ RestClient.prototype.consume = function (operation, url, data, id) {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
-                response = JSON.parse(xhr.responseText);
+                if (xhr.responseText !== '') {
+                  response = JSON.parse(xhr.responseText);
+                } else {
+                    response = xhr.responseText;
+                }
                 self.RestSuccess(type, response);
             } else {
-                response = JSON.parse(xhr.responseText);
+                if (xhr.responseText !== '') {
+                    response = JSON.parse(xhr.responseText);
+                } else {
+                    response = xhr.responseText;
+                }
                 self.RestFailure(type, response);
             }
         }
@@ -594,6 +602,12 @@ RestClient.prototype.consume = function (operation, url, data, id) {
     _.each(this.headers, function (value, key) {
         xhr.setRequestHeader(key, value);
     });
+
+    if (body != '') {
+        body = "access_token=" + this.response.access_token + "&" + body;
+    } else {
+        body = "access_token=" + this.response.access_token
+    }
 
     xhr.send(body);
 
