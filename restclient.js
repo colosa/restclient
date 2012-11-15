@@ -497,7 +497,7 @@ RestClient.prototype.setBasicCredentials = function (username, password) {
  * @return {*}
  */
 RestClient.prototype.setAccessToken = function(obj){
-    if (typeof obj === 'Object'){
+    if (typeof obj === 'object'){
         this.accessToken = obj;
     }
     return this;
