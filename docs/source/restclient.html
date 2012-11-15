@@ -231,6 +231,11 @@ RestClient = function () {
      * @type {String}
      */
     this.authorizationType = 'none';
+<span id='RestClient-property-accessToken'>    /**
+</span>     * Stores the Oauth2.0 access token
+     * @type {Object}
+     */
+    this.accessToken = {};
 <span id='RestClient-property-RESTMethods'>    /**
 </span>     * Stores the REST method/verbs accepted
      * @type {Object}
@@ -385,7 +390,8 @@ RestClient.prototype.authorize = function (config) {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 var response = JSON.parse(xhr.responseText);
-                self.response = _.extend(self.response, response);
+                //self.response = _.extend(self.response, response);
+                self.accessToken = (response.token) ? response.token : {};
                 success = true;
                 if (config.success) {
                     config.success(xhr);
@@ -502,6 +508,17 @@ RestClient.prototype.setBasicCredentials = function (username, password) {
     this.authorization.basic_password = password;
     return this;
 };
+<span id='RestClient-method-setAccessToken'>/**
+</span> * Set manually with an access token
+ * @param {Object} obj
+ * @return {*}
+ */
+RestClient.prototype.setAccessToken = function(obj){
+    if (typeof obj === 'Object'){
+        this.accessToken = obj;
+    }
+    return this;
+};
 
 <span id='RestClient-method-getCall'>/**
 </span> * Consume REST through GET Method
@@ -579,10 +596,7 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Basic &quot; + basicHash);
         break;
     case 'oauth2':
-        if (this.authorization.access_token) {
-            xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Bearer &quot; +
-                this.authorization.access_token);
-        } else {
+        if (!this.accessToken.access_token) {
             error = {success: false, msg: 'Access Token not defined'};
             this.RequestFailure(error);
             return JSON.stringify(error);
@@ -595,22 +609,31 @@ RestClient.prototype.consume = function (operation, url, data, id) {
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
-                response = JSON.parse(xhr.responseText);
+                if (xhr.responseText !== '') {
+                    response = JSON.parse(xhr.responseText);
+                } else {
+                    response = xhr.responseText;
+                }
                 self.RestSuccess(type, response);
             } else {
-                response = JSON.parse(xhr.responseText);
+                if (xhr.responseText !== '') {
+                    response = JSON.parse(xhr.responseText);
+                } else {
+                    response = xhr.responseText;
+                }
                 self.RestFailure(type, response);
             }
         }
     };
 
     xhr.setRequestHeader(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
-    body = (data) ? this.toParams(data) : '';
 
     //Insert Headers
     _.each(this.headers, function (value, key) {
         xhr.setRequestHeader(key, value);
     });
+
+    body = 'access_token=' + this.accessToken.access_token + &quot;&amp;json=&quot; + JSON.stringify(data);
 
     xhr.send(body);
 
