@@ -558,13 +558,20 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         xhr,
         type,
         response = {},
-        body,
+        body = null,
         prepareUrl,
         self,
-        error;
+        error,
+        sendBody = true;
 
     if (operation === 'update' || operation === 'delete') {
         prepareUrl = url + "/" +  id;
+    } else if (operation === 'read') {
+        prepareUrl = url + '?access_token=' + this.accessToken.access_token;
+        if (data !== {}){
+            prepareUrl += "&" + this.toParams(data);
+        }
+        sendBody = false;
     } else {
         prepareUrl = url;
     }
@@ -616,8 +623,9 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         xhr.setRequestHeader(key, value);
     });
 
-    body = 'access_token=' + this.accessToken.access_token + "&json=" + JSON.stringify(data);
-
+    if (sendBody){
+        body = 'access_token=' + this.accessToken.access_token + "&json=" + JSON.stringify(data);
+    }
     xhr.send(body);
 
     return response;
