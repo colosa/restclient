@@ -215,6 +215,11 @@ RestClient = function () {
      */
     this.authorizationType = 'none';
     /**
+     * Stores the Oauth2.0 access token
+     * @type {Object}
+     */
+    this.accessToken = {};
+    /**
      * Stores the REST method/verbs accepted
      * @type {Object}
      */
@@ -368,7 +373,8 @@ RestClient.prototype.authorize = function (config) {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 var response = JSON.parse(xhr.responseText);
-                self.response = _.extend(self.response, response);
+                //self.response = _.extend(self.response, response);
+                self.accessToken = (response.token) ? response.token : {};
                 success = true;
                 if (config.success) {
                     config.success(xhr);
@@ -485,6 +491,17 @@ RestClient.prototype.setBasicCredentials = function (username, password) {
     this.authorization.basic_password = password;
     return this;
 };
+/**
+ * Set manually with an access token
+ * @param {Object} obj
+ * @return {*}
+ */
+RestClient.prototype.setAccessToken = function(obj){
+    if (typeof obj === 'Object'){
+        this.accessToken = obj;
+    }
+    return this;
+};
 
 /**
  * Consume REST through GET Method
@@ -536,7 +553,7 @@ RestClient.prototype.deleteCall = function (url, id, data) {
  * @param {String} id Optional Indentificator
  * @return {Object}
  */
-RestClient.prototype.consume = function (operation, url, data, id, options) {
+RestClient.prototype.consume = function (operation, url, data, id) {
     var basicHash,
         xhr,
         type,
@@ -562,10 +579,7 @@ RestClient.prototype.consume = function (operation, url, data, id, options) {
         xhr.setRequestHeader("Authorization", "Basic " + basicHash);
         break;
     case 'oauth2':
-        if (this.response.access_token) {
-            //xhr.setRequestHeader("Authorization", "Bearer " +
-            //    this.response.access_token);
-        } else {
+        if (!this.accessToken.access_token) {
             error = {success: false, msg: 'Access Token not defined'};
             this.RequestFailure(error);
             return JSON.stringify(error);
@@ -602,7 +616,7 @@ RestClient.prototype.consume = function (operation, url, data, id, options) {
         xhr.setRequestHeader(key, value);
     });
 
-    body = 'access_token=' + this.response.access_token + "&json=" + JSON.stringify(data);
+    body = 'access_token=' + this.accessToken.access_token + "&json=" + JSON.stringify(data);
 
     xhr.send(body);
 
