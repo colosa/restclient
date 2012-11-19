@@ -509,8 +509,11 @@ RestClient.prototype.setAccessToken = function(obj){
  * @param {Object} data
  * @return {Object} JSON Response
  */
-RestClient.prototype.getCall = function (url, data) {
-    return this.consume('read', url, data, null);
+RestClient.prototype.getCall = function (url, data, id) {
+    if (typeof id === 'undefined'){
+        id = null;
+    }
+    return this.consume('read', url, data, id);
 };
 
 /**
@@ -566,7 +569,11 @@ RestClient.prototype.consume = function (operation, url, data, id) {
 
     switch(operation){
         case 'read':
-        prepareUrl = url + '?access_token=' + this.accessToken.access_token;
+        prepareUrl = url;
+        if (id){
+            prepareUrl += id;
+        }
+        prepareUrl += '?access_token=' + this.accessToken.access_token;
         if (data !== {}){
             prepareUrl += "&" + this.toParams(data);
         }
