@@ -564,16 +564,24 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         error,
         sendBody = true;
 
-    if (operation === 'update' || operation === 'delete') {
-        prepareUrl = url + "/" +  id;
-    } else if (operation === 'read') {
+    switch(operation){
+        case 'read':
         prepareUrl = url + '?access_token=' + this.accessToken.access_token;
         if (data !== {}){
             prepareUrl += "&" + this.toParams(data);
         }
         sendBody = false;
-    } else {
+        break;
+        case 'create':
         prepareUrl = url;
+        break;
+        case 'update':
+        prepareUrl = url + id;
+        break;
+        case 'delete':
+        prepareUrl = url + id;
+        sendBody = false;
+        break;
     }
 
     xhr = this.createXHR();
