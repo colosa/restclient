@@ -364,7 +364,12 @@ RestClient.prototype.authorize = function (config) {
         this.authorization.client_secret);
 
     xhr = this.createXHR();
-    xhr.open(type, this.server.rest_auth_uri, false);
+    try {
+        xhr.open(type, this.server.rest_auth_uri, false);
+    } catch(e){
+        XHRFailure(e, {});
+        return success;
+    }
 
     xhr.onreadystatechange = function () {
         if (config.ready) {
@@ -587,7 +592,6 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         break;
         case 'delete':
         prepareUrl = url + id;
-        sendBody = false;
         break;
     }
 
@@ -609,7 +613,13 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         break;
     }
     type = this.RESTMethods[operation];
-    xhr.open(type, prepareUrl, false);
+    try{
+        xhr.open(type, prepareUrl, false);
+    } catch(e){
+        XHRFailure(e, data);
+        return false;
+    }
+
     self = this;
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
@@ -670,6 +680,15 @@ RestClient.prototype.RestFailure = function (method, data) {
  * @event
  */
 RestClient.prototype.RequestFailure = function (data) {
+};
+
+/**
+ * Event is called when the Request has failed
+ * @param {Object} error JS Error
+ * @param {Object} data Error Response
+ * @event
+ */
+RestClient.prototype.XHRFailure = function (error, data) {
 };
 
 
