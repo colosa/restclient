@@ -395,11 +395,10 @@ RestClient.prototype.authorize = function (config) {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 var response = JSON.parse(xhr.responseText);
-                //self.response = _.extend(self.response, response);
                 self.accessToken = (response.token) ? response.token : {};
                 success = true;
                 if (config.success) {
-                    config.success(xhr);
+                    config.success(xhr, response);
                 }
             } else {
                 if (config.failure) {
