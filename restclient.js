@@ -183,7 +183,7 @@ RestClient = function () {
      * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.2';
+    this.VERSION = '0.1.4';
     /**
      * Stores the authorization variables
      * @type {Object}
@@ -209,6 +209,17 @@ RestClient = function () {
      * @type {Boolean}
      */
     this.needsAuthorization = true;
+    /**
+     * Set if the RestClient send automaticaly the refresh token during a request
+     * @type {Boolean}
+     */
+    this.autoUseRefreshToken = true;
+
+    /**
+     * Set if the RestClient stores automaticaly a valid access token received
+     * @type {Boolean}
+     */
+    this.autoStoreAccessToken = true;
     /**
      * Stores the authorization type. Values Accepted: none, basic, oauth2
      * @type {String}
@@ -330,13 +341,15 @@ RestClient.prototype.createXHR = function () {
     var httpRequest;
     if (window.XMLHttpRequest) {
         httpRequest = new XMLHttpRequest();
-    } else if (window.ActiveXObject) {
+    } else if (!window.ActiveXObject) {
+    } else {
         try {
             httpRequest = new ActiveXObject("MSXML2.XMLHTTP");
         } catch (e) {
             try {
                 httpRequest = new ActiveXObject("Microsoft.XMLHTTP");
-            } catch (ex) {}
+            } catch (ex) {
+            }
         }
     }
     if (!httpRequest) {
@@ -345,47 +358,66 @@ RestClient.prototype.createXHR = function () {
     return httpRequest;
 };
 
-//
 /**
  * Request an authorization
- * @param {Object} config
+ * @param {Object} options Authorization Options
  * @return {Boolean}
  */
-RestClient.prototype.authorize = function (config) {
+RestClient.prototype.authorize = function (options) {
     var self = this,
         success = false,
-        method = 'create',
-        type = this.RESTMethods[method],
+        operation = 'create',
+        method = this.RESTMethods[operation],
         basicHash,
         xhr,
-        body;
+        body,
+        response;
 
     basicHash = RCBase64.encode(this.authorization.client_id + ':' +
         this.authorization.client_secret);
 
     xhr = this.createXHR();
     try {
-        xhr.open(type, this.server.rest_auth_uri, false);
+        xhr.open(method, this.server.rest_auth_uri, false);
     } catch(e){
-        XHRFailure(e, {});
+        this.XHRFailure(e, {});
         return success;
     }
 
     xhr.onreadystatechange = function () {
-        if (config.ready) {
-            config.ready(xhr);
+        if (options.ready) {
+            options.ready(xhr);
         }
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
-                var response = JSON.parse(xhr.responseText);
-                self.accessToken = (response.token) ? response.token : {};
-                success = true;
-                if (config.success) {
-                    config.success(xhr, response);
+                try {
+                    response = JSON.parse(xhr.responseText);
+                    if (this.autoStoreAccessToken) {
+                        self.accessToken = (response.token) ? response.token : {};
+                    }
+                    success = true;
+                    if (options.success){
+                        options.success(xhr, response);
+                    }
+                } catch(e){
+                    response = {
+                        'success': false,
+                        'error' : {
+                            'error' : 400,
+                            'error_description' : 'Response is not a valid JSON'
+                        }
+                    };
+                    if (options.failure){
+                        options.failure(xhr, response);
+                    }
                 }
             } else {
-                if (config.failure) {
-                    config.failure(xhr);
+                response = {};
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch(e){}
+                if (options.failure){
+                    options.failure(xhr, response);
                 }
             }
         }
@@ -463,6 +495,18 @@ RestClient.prototype.setAuthorizationMode = function (value) {
 };
 
 /**
+ * Set RefreshToken use automaticaly
+ * @param {Boolean} value Boolean value true = automatic
+ * @return {*}
+ */
+RestClient.prototype.setRefreshTokenAutomatic = function(value){
+    if (_.isBoolean(value)){
+        this.useRefreshTokenAuto = value;
+    }
+    return this;
+};
+
+/**
  * Returns the library version
  * @return {String} RestClient Version
  */
@@ -508,68 +552,109 @@ RestClient.prototype.setAccessToken = function(obj){
 };
 
 /**
- * Consume REST through GET Method
- * @param {String} url REST Endpoint
- * @param {Object} data
- * @return {Object} JSON Response
+ * Prepare the error object when exists required fields not found
+ * @param {Array} fields Required Fields Array
+ * @return {Object} Error Object
+ * @private
  */
-RestClient.prototype.getCall = function (url, data, id) {
-    if (typeof id === 'undefined'){
-        id = null;
-    }
-    return this.consume('read', url, data, id);
+RestClient.prototype.prepareReqFields = function (fields) {
+    var response;
+    response = {
+        success: false,
+        error: {
+            error: 400,
+            error_description : 'Required fields not found'
+        },
+        fields: fields
+    };
+    return response;
+};
+
+/**
+ * Consume REST through GET Method
+ * @param {Object} config Congiguration Object
+ * @return {Boolean} REST Response Status
+ */
+RestClient.prototype.getCall = function (config) {
+    config.operation = 'read';
+    return this.consume(config);
 };
 
 /**
  * Consume REST through POST Method
- * @param {String} url REST Endpoint
- * @param {Object} data
- * @return {Object} JSON Response
+ * @param {Object} config Congiguration Object
+ * @return {Boolean} REST Response Status
  */
-RestClient.prototype.postCall = function (url, data) {
-    return this.consume('create', url, data, null);
+RestClient.prototype.postCall = function (config) {
+    config.operation = 'create';
+    return this.consume(config);
 };
 
 /**
  * Consume REST through PUT Method
- * @param {String} url REST Endpoint
- * @param {String} id Identificator
- * @param {Object} data
- * @return {Object} JSON Response
+ * @param {Object} config Congiguration Object
+ * @return {Boolean} REST Response Status
  */
-RestClient.prototype.putCall = function (url, id, data) {
-    return this.consume('update', url, data, id);
+RestClient.prototype.putCall = function (config) {
+    config.operation = 'update';
+    return this.consume(config);
 };
 
 /**
  * Consume REST through DELETE Method
- * @param {String} url REST Endpoint
- * @param {String} id Identificator
- * @param {Object} data
- * @return {Object} JSON Response
+ * @config {Object} config Configuration Object
+ * @return {Boolean} REST Response Status
  */
-RestClient.prototype.deleteCall = function (url, id, data) {
-    return this.consume('delete', url, data, id);
+RestClient.prototype.deleteCall = function (config) {
+    config.operation = 'delete';
+    return this.consume(config);
 };
 
 /**
  * Consume  REST method
- * @param {String} operation REST Verb/Method
- * @param {String} url REST Endpoint
- * @param {Object} data
- * @param {String} id Optional Indentificator
- * @return {Object}
+ * @param {Object} options Consume Options
+ * @return {Boolean}
  */
-RestClient.prototype.consume = function (operation, url, data, id) {
+RestClient.prototype.consume = function (options) {
     var basicHash,
         xhr,
-        type,
+        operation,
+        method,
         response = {},
         body = null,
         prepareUrl,
         self,
         error,
-        sendBody = true;
+        success = true,
+        sendBody = true,
+        url,
+        requiredFields = [],
+        data,
+        id;
+
+    if (options.operation) {
+        operation = options.operation;
+    } else {
+        success = false;
+        requiredFields.push('operation');
+    }
+
+    if (options.url) {
+        url = options.url;
+    } else {
+        success = false;
+        requiredFields.push('url');
+    }
+
+    data = (options.data) ? options.data : {};
+    id = (options.id) ? options.id : null;
+
+    if (!success) {
+        if (options.failure) {
+            options.failure(null, this.prepareReqFields(requiredFields));
+        }
+        return success;
+    }
 
     switch(operation){
         case 'read':
@@ -605,37 +690,92 @@ RestClient.prototype.consume = function (operation, url, data, id) {
         break;
     case 'oauth2':
         if (!this.accessToken.access_token) {
-            error = {success: false, msg: 'Access Token not defined'};
-            this.RequestFailure(error);
-            return JSON.stringify(error);
+            success = false;
+            requiredFields.push('access_token');
+            error = {
+                success: false,
+                error : {
+                    error : 400,
+                    error_description: 'Access Token not defined'
+                }
+            };
+            if (options.failure) {
+                options.failure(null, this.prepareReqFields(requiredFields));
+            }
+            return success;
         }
         break;
     }
-    type = this.RESTMethods[operation];
+    method = this.RESTMethods[operation];
     try{
-        xhr.open(type, prepareUrl, false);
+        xhr.open(method, prepareUrl, false);
     } catch(e){
-        XHRFailure(e, data);
+        this.XHRFailure(e, data);
         return false;
     }
 
     self = this;
     xhr.onreadystatechange = function () {
+        if (options.ready) {
+            options.ready(xhr);
+        }
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
-                if (xhr.responseText !== '') {
+                try{
                     response = JSON.parse(xhr.responseText);
-                } else {
-                    response = xhr.responseText;
+                    if (options.success){
+                        options.success(xhr, response);
+                    }
+                } catch(e){
+                    response = {
+                        'success': false,
+                        'error' : {
+                            'error' : 400,
+                            'error_description' : 'Response is not a valid JSON'
+                        }
+                    };
+                    if (options.failure){
+                        options.failure(xhr, response);
+                    }
                 }
-                self.RestSuccess(type, response);
             } else {
-                if (xhr.responseText !== '') {
-                    response = JSON.parse(xhr.responseText);
+                if (xhr.status === 401 && self.autoUseRefreshToken) {
+                    if (self.accessToken.refresh_token) {
+                        self.setGrantType('refresh',{refresh_token: self.accessToken.refresh_token});
+                        self.authorize({
+                            success: function(x, data){
+                                success = self.consume(options);
+                            },
+                            failure: function(x, data){
+                                success = false;
+                                if (options.failure){
+                                    options.failure(null, data);
+                                }
+                            }
+                        });
+                    } else {
+                        success = false;
+                        response = {
+                            success: false,
+                            error: {
+                                error: 401,
+                                error_description: 'Refresh token is not defined'
+                            }
+                        };
+                        if (options.failure){
+                            options.failure(xhr, response);
+                        }
+                    }
                 } else {
-                    response = xhr.responseText;
+                    success = false;
+                    response = {};
+                    try {
+                        response = JSON.parse(xhr.responseText);
+                    } catch(e){}
+                    if (options.failure) {
+                        options.failure(xhr, response);
+                    }
                 }
-                self.RestFailure(type, response);
             }
         }
     };
@@ -652,44 +792,8 @@ RestClient.prototype.consume = function (operation, url, data, id) {
     }
     xhr.send(body);
 
-    return response;
+    return success;
 };
-
-/**
- * Event is called when the REST request is successfully
- * @param method
- * @param data
- * @event
- */
-RestClient.prototype.RestSuccess = function (method, data) {
-};
-
-/**
- * Event is called when the REST request has failed
- * @param method
- * @param data
- * @event
- */
-RestClient.prototype.RestFailure = function (method, data) {
-};
-
-/**
- * Event is called when the Request has failed
- * @param {Object} data Error Response
- * @event
- */
-RestClient.prototype.RequestFailure = function (data) {
-};
-
-/**
- * Event is called when the Request has failed
- * @param {Object} error JS Error
- * @param {Object} data Error Response
- * @event
- */
-RestClient.prototype.XHRFailure = function (error, data) {
-};
-
 
 //Define Module to be used in server side (Node.js)
 if (typeof exports !== 'undefined') {
