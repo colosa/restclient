@@ -650,7 +650,7 @@ RestClient.prototype.authorize = function (options) {
             self.AuthorizeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === this.HTTP_SUCCESS) {
+            if (xhr.status === self.HTTP_SUCCESS) {
                 try {
                     response = JSON.parse(xhr.responseText);
                     if (self.autoStoreAccessToken) {
@@ -666,7 +666,7 @@ RestClient.prototype.authorize = function (options) {
                     response = {
                         'success': false,
                         'error' : {
-                            'error' : this.HTTP_BAD_REQUEST,
+                            'error' : self.HTTP_BAD_REQUEST,
                             'error_description' : 'Response is not a valid JSON'
                         }
                     };
@@ -1004,7 +1004,7 @@ RestClient.prototype.consume = function (options) {
             self.ConsumeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === this.HTTP_SUCCESS) {
+            if (xhr.status === self.HTTP_SUCCESS) {
                 try{
                     response = JSON.parse(xhr.responseText);
                     if (options.success){
@@ -1016,7 +1016,7 @@ RestClient.prototype.consume = function (options) {
                     response = {
                         'success': false,
                         'error' : {
-                            'error' : this.HTTP_BAD_REQUEST,
+                            'error' : self.HTTP_BAD_REQUEST,
                             'error_description' : 'Response is not a valid JSON'
                         }
                     };
@@ -1027,7 +1027,7 @@ RestClient.prototype.consume = function (options) {
                     }
                 }
             } else {
-                if (xhr.status === this.HTTP_UNAUTHORIZED && self.autoUseRefreshToken) {
+                if (xhr.status === self.HTTP_UNAUTHORIZED && self.autoUseRefreshToken) {
                     if (self.accessToken.refresh_token) {
                         self.setGrantType('refresh',{refresh_token: self.accessToken.refresh_token});
                         self.authorize({
@@ -1055,7 +1055,7 @@ RestClient.prototype.consume = function (options) {
                         response = {
                             success: false,
                             error: {
-                                error: this.HTTP_UNAUTHORIZED,
+                                error: self.HTTP_UNAUTHORIZED,
                                 error_description: 'Refresh token is not defined'
                             }
                         };
