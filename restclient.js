@@ -285,10 +285,25 @@ RestClient = function () {
     this.contentType = 'application/x-www-form-urlencoded';
 
     /**
-     * Stores if the restclient will send and Bearer Authorization Header
+     * Stores if the RestClient will send and Bearer Authorization Header
      * @type {Boolean}
      */
     this.sendOAuthBearerAuthorization = false;
+
+    /**
+     * Stores the information about the way to process the response
+     *
+     * Valid values are: 'json', 'jsonp', 'plain','form'
+     * @type {String}
+     */
+
+    this.dataType = 'form';
+    /**
+     * Stores the unique callback name
+     * @type {String}
+     * @private
+     */
+    this.uniqueCallback = '';
 
     /**
      * Stores if OAuth 2.0 Authorization need set Authorization Header
@@ -355,6 +370,8 @@ RestClient.prototype.initObject = function () {
     this.contentType = 'application/x-www-form-urlencoded';
     this.sendOAuthBearerAuthorization = false;
     this.oauth2NeedsAuthorization = true;
+    this.dataType = 'form';
+    this.uniqueCallback = '';
 };
 
 /**
@@ -424,6 +441,24 @@ RestClient.prototype.setSendBearerAuthorization = function (value) {
 RestClient.prototype.setOAuth2NeedsAuthorization = function (value) {
     if (_.isBoolean(value)){
         this.oauth2NeedsAuthorization = value;
+    }
+    return this;
+};
+/**
+ * Set the DataType used to request data
+ * @param type
+ * @return {*}
+ */
+RestClient.prototype.setDataType = function( type ){
+    var acceptedTypes = {
+        json: 'application/json',
+        jsonp: 'application/javascript',
+        plain: 'text/plain',
+        form: 'application/x-www-form-urlencoded'
+    };
+    if (acceptedTypes[type]) {
+        this.authorizationType = type;
+        this.contentType = acceptedTypes[type];
     }
     return this;
 };
@@ -527,6 +562,13 @@ RestClient.prototype.setAccessToken = function(obj){
     }
     return this;
 };
+/**
+ * Generate an unique id
+ * @return {String}
+ */
+RestClient.prototype.getUniqueId = function(){
+  return '' + Math.floor(Math.random() * Math.pow(10, 16));
+};
 
 /**
  * Convert an Object to Key/Value string
@@ -550,7 +592,7 @@ RestClient.prototype.toParams = function (obj) {
  */
 RestClient.prototype.prepareBody = function (data) {
     var out = '';
-    if (this.contentType === 'application/json'){
+    if (this.dataType === 'json' || this.dataType === 'jsonp'){
         if (typeof data === 'object'){
             out = JSON.stringify(data);
         }
@@ -652,7 +694,12 @@ RestClient.prototype.authorize = function (options) {
         if (xhr.readyState === 4) {
             if (xhr.status === self.HTTP_SUCCESS) {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    if (this.dataType === 'jsonp'){
+                        //TODO Implement JSONP Response
+                        response = {};
+                    } else {
+                        response = JSON.parse(xhr.responseText);
+                    }
                     if (self.autoStoreAccessToken) {
                         self.accessToken = (response.token) ? response.token : {};
                     }
@@ -726,6 +773,11 @@ RestClient.prototype.authorize = function (options) {
         xhr.setRequestHeader(key, value);
     });
 
+    if (this.dataType === 'jsonp'){
+        this.uniqueCallback = 'rc_' + this.getUniqueId();
+        body.callback = this.uniqueCallback;
+    }
+
     xhr.send(this.prepareBody(body));
 
     return success;
@@ -761,6 +813,7 @@ RestClient.prototype.prepareReqFields = function (fields) {
 RestClient.prototype.prepareConsumeUrl = function(operation, url, id, data) {
     var auxUrl,
         auxBody,
+        auxContentType = this.contentType,
         usedQuestionMark = false;
 
     switch(operation){
@@ -782,12 +835,17 @@ RestClient.prototype.prepareConsumeUrl = function(operation, url, id, data) {
                 auxUrl += this.toParams(data);
             }
             auxBody = null;
+            auxContentType = 'x-www-form-urlencoded';
             break;
         case 'create':
             auxUrl = url;
             auxBody = data || {};
             if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization){
                auxBody.access_token = this.accessToken.access_token;
+            }
+            if (this.dataType === 'jsonp'){
+                this.uniqueCallback = 'rc_' + this.getUniqueId();
+                auxBody.callback = this.uniqueCallback;
             }
             auxBody = this.prepareBody(auxBody);
             break;
@@ -799,6 +857,10 @@ RestClient.prototype.prepareConsumeUrl = function(operation, url, id, data) {
             auxBody = data || {};
             if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization){
                 auxBody.access_token = this.accessToken.access_token;
+            }
+            if (this.dataType === 'jsonp'){
+                this.uniqueCallback = 'rc_' + this.getUniqueId();
+                auxBody.callback = this.uniqueCallback;
             }
             auxBody = this.prepareBody(auxBody);
             break;
@@ -816,7 +878,8 @@ RestClient.prototype.prepareConsumeUrl = function(operation, url, id, data) {
     }
     return {
         url: auxUrl,
-        body: auxBody
+        body: auxBody,
+        content_type: auxContentType
     };
 };
 
@@ -918,7 +981,8 @@ RestClient.prototype.consume = function (options) {
         data,
         id,
         prepare,
-        bearerText;
+        bearerText,
+        contentType;
 
     if (options.operation) {
         operation = options.operation;
@@ -949,6 +1013,7 @@ RestClient.prototype.consume = function (options) {
     prepare = this.prepareConsumeUrl(operation, url, id, data);
     prepareUrl = prepare.url;
     body = prepare.body;
+    contentType = prepare.content_type;
 
     xhr = this.createXHR();
     switch (this.authorizationType) {
@@ -1006,7 +1071,12 @@ RestClient.prototype.consume = function (options) {
         if (xhr.readyState === 4) {
             if (xhr.status === self.HTTP_SUCCESS) {
                 try{
-                    response = JSON.parse(xhr.responseText);
+                    if (self.dataType === 'jsonp'){
+                        //TODO Implement JSONP Data Response
+                        response = {};
+                    } else {
+                        response = JSON.parse(xhr.responseText);
+                    }
                     if (options.success){
                         options.success(xhr, response);
                     } else {
@@ -1081,7 +1151,7 @@ RestClient.prototype.consume = function (options) {
         }
     };
 
-    xhr.setRequestHeader("Content-Type", this.contentType);
+    xhr.setRequestHeader("Content-Type", contentType);
     //Insert Custom Headers
     _.each(this.headers, function (value, key) {
         xhr.setRequestHeader(key, value);
