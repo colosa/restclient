@@ -298,12 +298,6 @@ RestClient = function () {
      */
 
     this.dataType = 'form';
-    /**
-     * Stores the unique callback name
-     * @type {String}
-     * @private
-     */
-    this.uniqueCallback = '';
 
     /**
      * Stores if OAuth 2.0 Authorization need set Authorization Header
@@ -371,7 +365,6 @@ RestClient.prototype.initObject = function () {
     this.sendOAuthBearerAuthorization = false;
     this.oauth2NeedsAuthorization = true;
     this.dataType = 'form';
-    this.uniqueCallback = '';
 };
 
 /**
@@ -452,12 +445,11 @@ RestClient.prototype.setOAuth2NeedsAuthorization = function (value) {
 RestClient.prototype.setDataType = function (type) {
     var acceptedDataTypes = {
         json: 'application/json',
-        jsonp: 'application/javascript',
         plain: 'text/plain',
         form: 'application/x-www-form-urlencoded'
     };
     if (acceptedDataTypes[type]) {
-        this.authorizationType = type;
+        this.dataType = type;
         this.contentType = acceptedDataTypes[type];
     }
     return this;
@@ -562,13 +554,6 @@ RestClient.prototype.setAccessToken = function (obj) {
     }
     return this;
 };
-/**
- * Generate an unique id
- * @return {String}
- */
-RestClient.prototype.getUniqueId = function () {
-    return String(Math.floor(Math.random() * Math.pow(10, 16)));
-};
 
 /**
  * Convert an Object to Key/Value string
@@ -601,8 +586,6 @@ RestClient.prototype.prepareBody = function (data) {
     }
     return out;
 };
-
-
 
 /**
  * Create an object XmlHttpRequest or returns false if fails
@@ -693,12 +676,7 @@ RestClient.prototype.authorize = function (options) {
         if (xhr.readyState === 4) {
             if (xhr.status === self.HTTP_SUCCESS) {
                 try {
-                    if (this.dataType === 'jsonp') {
-                        //TODO Implement JSONP Response
-                        response = {};
-                    } else {
-                        response = JSON.parse(xhr.responseText);
-                    }
+                    response = JSON.parse(xhr.responseText);
                     if (self.autoStoreAccessToken) {
                         self.accessToken = response.token || {};
                     }
@@ -772,11 +750,6 @@ RestClient.prototype.authorize = function (options) {
         xhr.setRequestHeader(key, value);
     });
 
-    if (this.dataType === 'jsonp') {
-        this.uniqueCallback = 'rc_' + this.getUniqueId();
-        body.callback = this.uniqueCallback;
-    }
-
     xhr.send(this.prepareBody(body));
 
     return success;
@@ -842,10 +815,6 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
         if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
             auxBody.access_token = this.accessToken.access_token;
         }
-        if (this.dataType === 'jsonp') {
-            this.uniqueCallback = 'rc_' + this.getUniqueId();
-            auxBody.callback = this.uniqueCallback;
-        }
         auxBody = this.prepareBody(auxBody);
         break;
     case 'update':
@@ -856,10 +825,6 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
         auxBody = data || {};
         if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
             auxBody.access_token = this.accessToken.access_token;
-        }
-        if (this.dataType === 'jsonp') {
-            this.uniqueCallback = 'rc_' + this.getUniqueId();
-            auxBody.callback = this.uniqueCallback;
         }
         auxBody = this.prepareBody(auxBody);
         break;
@@ -1070,12 +1035,7 @@ RestClient.prototype.consume = function (options) {
         if (xhr.readyState === 4) {
             if (xhr.status === self.HTTP_SUCCESS) {
                 try {
-                    if (self.dataType === 'jsonp') {
-                        //TODO Implement JSONP Data Response
-                        response = {};
-                    } else {
-                        response = JSON.parse(xhr.responseText);
-                    }
+                    response = JSON.parse(xhr.responseText);
                     if (options.success) {
                         options.success(xhr, response);
                     } else {
