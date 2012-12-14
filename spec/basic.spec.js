@@ -1,22 +1,40 @@
-var RestClient = require('../restclient.js');
-describe("RestClient.js - Basic Functions", function () {
+var RestClient = require('../restclient.js').RestClient;
 
-    var rc = new RestClient();
+describe("RestClient.js - Constructor, Setters and Getters", function(){
 
-    it("Reset method should initialize object", function () {
+    var rc, rc2;
 
-        rc.authorization.aa = 'aa';
-        rc.server.bb = 'bb';
-        rc.headers.cc = 'cc';
-        rc.response.dd = 'dd';
-        rc.needsAuthorization = false;
-        expect(rc.reset().authorization).toEqual({});
-        expect(rc.reset().server).toEqual({});
-        expect(rc.reset().headers).toEqual({});
-        expect(rc.reset().response).toEqual({});
-        expect(rc.reset().needsAuthorization).toBe(true);
-        expect(rc.reset().authorizationType).toBe('none');
+    describe ("Constructor", function(){
+        it("should create a new RestClient with the constructor", function() {
+            rc = new RestClient();
+            expect(typeof rc).toEqual('object');
 
+        });
+        it("should create an unique version of each object", function() {
+            rc2 = new RestClient();
+            rc.contentType = "test";
+            expect(rc).not.toEqual(rc2);
+        });
     });
+
+    describe("Setters", function() {
+        it("method 'setUseRefreshTokenAutomatically' should set the value of autoUseRefreshToken property", function(){
+            rc.setUseRefreshTokenAutomatically(true);
+            expect(rc.autoUseRefreshToken).toBeTruthy();
+            rc.setUseRefreshTokenAutomatically(false);
+            expect(rc.autoUseRefreshToken).toBeFalsy();
+        });
+
+        it("method 'setUseRefreshTokenAutomatically' should accept only boolean values", function(){
+            rc.setUseRefreshTokenAutomatically('text');
+            expect(rc.autoUseRefreshToken).toBeFalsy();
+            rc.setUseRefreshTokenAutomatically({a:5});
+            expect(rc.autoUseRefreshToken).toBeFalsy();
+            rc.setUseRefreshTokenAutomatically(null);
+            expect(rc.autoUseRefreshToken).toBeFalsy();
+        });
+    });
+
+
 
 });

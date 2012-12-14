@@ -380,7 +380,7 @@ RestClient.prototype.initObject = function () {
  * @return {*}
  */
 RestClient.prototype.setUseRefreshTokenAutomatically = function (value) {
-    if (_.isBoolean(value)){
+    if (_.isBoolean(value)) {
         this.autoUseRefreshToken = value;
     }
     return this;
@@ -392,7 +392,7 @@ RestClient.prototype.setUseRefreshTokenAutomatically = function (value) {
  * @return {*}
  */
 RestClient.prototype.setStoreAccessTokenAutomatically = function (value) {
-    if (_.isBoolean(value)){
+    if (_.isBoolean(value)) {
         this.autoStoreAccessToken = value;
     }
     return this;
@@ -439,7 +439,7 @@ RestClient.prototype.setSendBearerAuthorization = function (value) {
  * @return {*}
  */
 RestClient.prototype.setOAuth2NeedsAuthorization = function (value) {
-    if (_.isBoolean(value)){
+    if (_.isBoolean(value)) {
         this.oauth2NeedsAuthorization = value;
     }
     return this;
@@ -449,16 +449,16 @@ RestClient.prototype.setOAuth2NeedsAuthorization = function (value) {
  * @param type
  * @return {*}
  */
-RestClient.prototype.setDataType = function( type ){
-    var acceptedTypes = {
+RestClient.prototype.setDataType = function (type) {
+    var acceptedDataTypes = {
         json: 'application/json',
         jsonp: 'application/javascript',
         plain: 'text/plain',
         form: 'application/x-www-form-urlencoded'
     };
-    if (acceptedTypes[type]) {
+    if (acceptedDataTypes[type]) {
         this.authorizationType = type;
-        this.contentType = acceptedTypes[type];
+        this.contentType = acceptedDataTypes[type];
     }
     return this;
 };
@@ -556,8 +556,8 @@ RestClient.prototype.setBasicCredentials = function (username, password) {
  * @param {Object} obj
  * @return {*}
  */
-RestClient.prototype.setAccessToken = function(obj){
-    if (typeof obj === 'object'){
+RestClient.prototype.setAccessToken = function (obj) {
+    if (typeof obj === 'object') {
         this.accessToken = obj;
     }
     return this;
@@ -566,8 +566,8 @@ RestClient.prototype.setAccessToken = function(obj){
  * Generate an unique id
  * @return {String}
  */
-RestClient.prototype.getUniqueId = function(){
-  return '' + Math.floor(Math.random() * Math.pow(10, 16));
+RestClient.prototype.getUniqueId = function () {
+    return String(Math.floor(Math.random() * Math.pow(10, 16)));
 };
 
 /**
@@ -592,8 +592,8 @@ RestClient.prototype.toParams = function (obj) {
  */
 RestClient.prototype.prepareBody = function (data) {
     var out = '';
-    if (this.dataType === 'json' || this.dataType === 'jsonp'){
-        if (typeof data === 'object'){
+    if (this.dataType === 'json' || this.dataType === 'jsonp') {
+        if (typeof data === 'object') {
             out = JSON.stringify(data);
         }
     } else {
@@ -612,7 +612,6 @@ RestClient.prototype.createXHR = function () {
     var httpRequest;
     if (window.XMLHttpRequest) {
         httpRequest = new XMLHttpRequest();
-    } else if (!window.ActiveXObject) {
     } else {
         try {
             httpRequest = new ActiveXObject("MSXML2.XMLHTTP");
@@ -676,8 +675,8 @@ RestClient.prototype.authorize = function (options) {
     xhr = this.createXHR();
     try {
         xhr.open(method, this.server.rest_auth_uri, false);
-    } catch(e){
-        if (options.xhrfailure){
+    } catch (e) {
+        if (options.xhrfailure) {
             options.xhrfailure(e, {});
         } else {
             this.XHRFailure(e, {});
@@ -694,22 +693,22 @@ RestClient.prototype.authorize = function (options) {
         if (xhr.readyState === 4) {
             if (xhr.status === self.HTTP_SUCCESS) {
                 try {
-                    if (this.dataType === 'jsonp'){
+                    if (this.dataType === 'jsonp') {
                         //TODO Implement JSONP Response
                         response = {};
                     } else {
                         response = JSON.parse(xhr.responseText);
                     }
                     if (self.autoStoreAccessToken) {
-                        self.accessToken = (response.token) ? response.token : {};
+                        self.accessToken = response.token || {};
                     }
                     success = true;
-                    if (options.success){
+                    if (options.success) {
                         options.success(xhr, response);
                     } else {
                         self.AuthorizeSuccess(xhr, response);
                     }
-                } catch(e){
+                } catch (e) {
                     response = {
                         'success': false,
                         'error' : {
@@ -717,7 +716,7 @@ RestClient.prototype.authorize = function (options) {
                             'error_description' : 'Response is not a valid JSON'
                         }
                     };
-                    if (options.failure){
+                    if (options.failure) {
                         options.failure(xhr, response);
                     } else {
                         self.AuthorizeFailure(xhr, response);
@@ -727,8 +726,8 @@ RestClient.prototype.authorize = function (options) {
                 response = {};
                 try {
                     response = JSON.parse(xhr.responseText);
-                } catch(e){}
-                if (options.failure){
+                } catch (ex) {}
+                if (options.failure) {
                     options.failure(xhr, response);
                 } else {
                     self.AuthorizeFailure(xhr, response);
@@ -773,7 +772,7 @@ RestClient.prototype.authorize = function (options) {
         xhr.setRequestHeader(key, value);
     });
 
-    if (this.dataType === 'jsonp'){
+    if (this.dataType === 'jsonp') {
         this.uniqueCallback = 'rc_' + this.getUniqueId();
         body.callback = this.uniqueCallback;
     }
@@ -810,71 +809,71 @@ RestClient.prototype.prepareReqFields = function (fields) {
  * @param {Object} data
  * @return {Object}
  */
-RestClient.prototype.prepareConsumeUrl = function(operation, url, id, data) {
+RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
     var auxUrl,
         auxBody,
         auxContentType = this.contentType,
         usedQuestionMark = false;
 
-    switch(operation){
-        case 'read':
-            auxUrl = url;
-            if (id) {
-                auxUrl += id;
+    switch (operation) {
+    case 'read':
+        auxUrl = url;
+        if (id) {
+            auxUrl += id;
+        }
+        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+            usedQuestionMark = true;
+            auxUrl += '?access_token=' + this.accessToken.access_token;
+        }
+        if (data) {
+            if (usedQuestionMark) {
+                auxUrl += "&";
+            } else {
+                auxUrl += "?";
             }
-            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization){
-                usedQuestionMark = true;
-                auxUrl += '?access_token=' + this.accessToken.access_token;
-            }
-            if (data){
-                if (usedQuestionMark) {
-                    auxUrl += "&";
-                }else {
-                    auxUrl += "?";
-                }
-                auxUrl += this.toParams(data);
-            }
-            auxBody = null;
-            auxContentType = 'x-www-form-urlencoded';
-            break;
-        case 'create':
-            auxUrl = url;
-            auxBody = data || {};
-            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization){
-               auxBody.access_token = this.accessToken.access_token;
-            }
-            if (this.dataType === 'jsonp'){
-                this.uniqueCallback = 'rc_' + this.getUniqueId();
-                auxBody.callback = this.uniqueCallback;
-            }
-            auxBody = this.prepareBody(auxBody);
-            break;
-        case 'update':
-            auxUrl = url;
-            if (id) {
-                auxUrl += id;
-            }
-            auxBody = data || {};
-            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization){
-                auxBody.access_token = this.accessToken.access_token;
-            }
-            if (this.dataType === 'jsonp'){
-                this.uniqueCallback = 'rc_' + this.getUniqueId();
-                auxBody.callback = this.uniqueCallback;
-            }
-            auxBody = this.prepareBody(auxBody);
-            break;
-        case 'delete':
-            auxUrl = url;
-            if (id) {
-                auxUrl += id;
-            }
-            auxBody = data || {};
-            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization){
-                auxBody.access_token = this.accessToken.access_token;
-            }
-            auxBody = this.prepareBody(auxBody);
-            break;
+            auxUrl += this.toParams(data);
+        }
+        auxBody = null;
+        auxContentType = 'application/x-www-form-urlencoded';
+        break;
+    case 'create':
+        auxUrl = url;
+        auxBody = data || {};
+        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+            auxBody.access_token = this.accessToken.access_token;
+        }
+        if (this.dataType === 'jsonp') {
+            this.uniqueCallback = 'rc_' + this.getUniqueId();
+            auxBody.callback = this.uniqueCallback;
+        }
+        auxBody = this.prepareBody(auxBody);
+        break;
+    case 'update':
+        auxUrl = url;
+        if (id) {
+            auxUrl += id;
+        }
+        auxBody = data || {};
+        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+            auxBody.access_token = this.accessToken.access_token;
+        }
+        if (this.dataType === 'jsonp') {
+            this.uniqueCallback = 'rc_' + this.getUniqueId();
+            auxBody.callback = this.uniqueCallback;
+        }
+        auxBody = this.prepareBody(auxBody);
+        break;
+    case 'delete':
+        auxUrl = url;
+        if (id) {
+            auxUrl += id;
+        }
+        auxBody = data || {};
+        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+            auxBody.access_token = this.accessToken.access_token;
+        }
+        auxBody = this.prepareBody(auxBody);
+        break;
     }
     return {
         url: auxUrl,
@@ -998,8 +997,8 @@ RestClient.prototype.consume = function (options) {
         requiredFields.push('url');
     }
 
-    data = (options.data) ? options.data : {};
-    id = (options.id) ? options.id : null;
+    data = options.data || {};
+    id = options.id || null;
 
     if (!success) {
         if (options.failure) {
@@ -1043,20 +1042,20 @@ RestClient.prototype.consume = function (options) {
             return success;
         } else {
             if (this.sendOAuthBearerAuthorization) {
-                bearerText = "Bearer: " + this.accessToken.access_token
+                bearerText = "Bearer: " + this.accessToken.access_token;
                 xhr.setRequestHeader("Authorization", bearerText);
             }
         }
         break;
     }
     method = this.RESTMethods[operation];
-    try{
+    try {
         xhr.open(method, prepareUrl, false);
-    } catch(e){
-        if (options.xhrfailure){
-            options.xhrfailure(e, data);
+    } catch (exc) {
+        if (options.xhrfailure) {
+            options.xhrfailure(exc, data);
         } else {
-            this.XHRFailure(e, data);
+            this.XHRFailure(exc, data);
         }
         return false;
     }
@@ -1070,19 +1069,19 @@ RestClient.prototype.consume = function (options) {
         }
         if (xhr.readyState === 4) {
             if (xhr.status === self.HTTP_SUCCESS) {
-                try{
-                    if (self.dataType === 'jsonp'){
+                try {
+                    if (self.dataType === 'jsonp') {
                         //TODO Implement JSONP Data Response
                         response = {};
                     } else {
                         response = JSON.parse(xhr.responseText);
                     }
-                    if (options.success){
+                    if (options.success) {
                         options.success(xhr, response);
                     } else {
                         self.ConsumeSuccess(xhr, response);
                     }
-                } catch(e){
+                } catch (ex) {
                     response = {
                         'success': false,
                         'error' : {
@@ -1090,7 +1089,7 @@ RestClient.prototype.consume = function (options) {
                             'error_description' : 'Response is not a valid JSON'
                         }
                     };
-                    if (options.failure){
+                    if (options.failure) {
                         options.failure(xhr, response);
                     } else {
                         self.ConsumeFailure(xhr, response);
@@ -1099,21 +1098,21 @@ RestClient.prototype.consume = function (options) {
             } else {
                 if (xhr.status === self.HTTP_UNAUTHORIZED && self.autoUseRefreshToken) {
                     if (self.accessToken.refresh_token) {
-                        self.setGrantType('refresh',{refresh_token: self.accessToken.refresh_token});
+                        self.setGrantType('refresh', {refresh_token: self.accessToken.refresh_token});
                         self.authorize({
-                            success: function(x, data){
+                            success: function (x, data) {
                                 success = self.consume(options);
-                                if (success){
-                                    if (options.autorefresh){
+                                if (success) {
+                                    if (options.autorefresh) {
                                         options.autorefresh(self.accessToken);
                                     } else {
                                         self.AuthorizeAutoRefresh(self.accessToken);
                                     }
                                 }
                             },
-                            failure: function(x, data){
+                            failure: function (x, data) {
                                 success = false;
-                                if (options.failure){
+                                if (options.failure) {
                                     options.failure(null, data);
                                 } else {
                                     self.ConsumeFailure(null, data);
@@ -1129,7 +1128,7 @@ RestClient.prototype.consume = function (options) {
                                 error_description: 'Refresh token is not defined'
                             }
                         };
-                        if (options.failure){
+                        if (options.failure) {
                             options.failure(xhr, response);
                         } else {
                             self.ConsumeFailure(xhr, response);
@@ -1140,7 +1139,7 @@ RestClient.prototype.consume = function (options) {
                     response = {};
                     try {
                         response = JSON.parse(xhr.responseText);
-                    } catch(e){}
+                    } catch (e) {}
                     if (options.failure) {
                         options.failure(xhr, response);
                     } else {
@@ -1233,6 +1232,9 @@ RestClient.prototype.ConsumeReady = function (xhr) {
 
 //Define Module to be used in server side (Node.js)
 if (typeof exports !== 'undefined') {
-    module.exports = RestClient;
+    module.exports = {
+        RestClient: RestClient,
+        RCBase64: RCBase64
+    };
     var _ = require('underscore');
 }

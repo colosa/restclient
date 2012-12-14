@@ -1,4 +1,5 @@
-var RestClient = require('../restclient.js');
+var RestClient = require('../restclient.js').RestClient;
+
 
 describe("RestClient.js - OAuth2 Capabilities", function () {
 
@@ -85,7 +86,7 @@ describe("RestClient.js - OAuth2 Capabilities", function () {
     describe ("Authorization Method: 'setAuthorizationServer'", function(){
 
         beforeEach(function(){
-            rc.reset();
+
         });
 
         it ("should accept url to set the authorization server", function(){
