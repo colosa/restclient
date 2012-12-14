@@ -146,9 +146,11 @@ describe("RestClient.js - Constructor, Setters and Getters", function(){
             expect(rc.dataType).toEqual('form');
             rc.setDataType('plain');
             expect(rc.dataType).toEqual('plain');
+            rc.setDataType('html');
+            expect(rc.dataType).toEqual('html');
         });
 
-        it("should accept only values: 'json', 'form', 'plain'", function(){
+        it("should accept only values: 'json', 'form', 'plain', 'html'", function(){
             rc.setDataType('json');
             rc.setDataType(null);
             expect(rc.dataType).toEqual('json');
@@ -163,13 +165,22 @@ describe("RestClient.js - Constructor, Setters and Getters", function(){
         it("should update the 'contentType' property", function(){
             rc.setDataType('json');
             expect(rc.contentType).toEqual('application/json');
-            rc.setDataType('jsonp');
-            expect(rc.contentType).toEqual('application/json');
+            rc.setDataType('html');
+            expect(rc.contentType).toEqual('text/html');
             rc.setDataType('form');
             expect(rc.contentType).toEqual('application/x-www-form-urlencoded');
             rc.setDataType('plain');
             expect(rc.contentType).toEqual('text/plain');
         });
+    });
+
+    describe("method 'setAccessTokenExpiredMessage'", function(){
+
+        it("should set the value of 'expiredAccessTokenMessage' property", function(){
+            rc.setAccessTokenExpiredMessage('message');
+            expect(rc.expiredAccessTokenMessage).toEqual('message');
+        });
+         
     });
 
     describe("method 'getVersion'", function(){

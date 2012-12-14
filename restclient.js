@@ -235,7 +235,7 @@ RestClient = function () {
      * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.5';
+    this.VERSION = '0.1.6';
     /**
      * Stores the authorization variables
      * @cfg {Object}
@@ -282,7 +282,7 @@ RestClient = function () {
      * Stores the request content-type
      * @type {String}
      */
-    this.contentType = 'application/x-www-form-urlencoded';
+    this.contentType = 'application/json';
 
     /**
      * Stores if the RestClient will send and Bearer Authorization Header
@@ -293,17 +293,23 @@ RestClient = function () {
     /**
      * Stores the information about the way to process the response
      *
-     * Valid values are: 'json', 'jsonp', 'plain','form'
+     * Valid values are: 'json', 'plain','form', 'html'
      * @type {String}
      */
 
-    this.dataType = 'form';
+    this.dataType = 'json';
 
     /**
      * Stores if OAuth 2.0 Authorization need set Authorization Header
      * @type {Boolean}
      */
     this.oauth2NeedsAuthorization = true;
+
+    /**
+     * Stores the message to compare when an access token is expired
+     * @type {String}
+     */
+    this.expiredAccessTokenMessage = '';
 
     /**
      * Stores the REST method/verbs accepted
@@ -348,6 +354,12 @@ RestClient.prototype.HTTP_BAD_REQUEST = 400;
  */
 RestClient.prototype.HTTP_UNAUTHORIZED = 401;
 
+/**
+ * OAuth 2.0 Invalid Grant Error Message
+ * @type {String}
+ */
+RestClient.prototype.OAUTH2_INVALID_GRANT = "invalid_grant";
+
 
 /**
  * Resets the RestClient
@@ -361,10 +373,11 @@ RestClient.prototype.initObject = function () {
     this.autoUseRefreshToken = true;
     this.autoStoreAccessToken = true;
     this.authorizationType = 'none';
-    this.contentType = 'application/x-www-form-urlencoded';
+    this.contentType = 'application/json';
     this.sendOAuthBearerAuthorization = false;
     this.oauth2NeedsAuthorization = true;
-    this.dataType = 'form';
+    this.dataType = 'json';
+    this.expiredAccessTokenMessage = 'The access token provided has expired.';
 };
 
 /**
@@ -446,12 +459,23 @@ RestClient.prototype.setDataType = function (type) {
     var acceptedDataTypes = {
         json: 'application/json',
         plain: 'text/plain',
-        form: 'application/x-www-form-urlencoded'
+        form: 'application/x-www-form-urlencoded',
+        html: 'text/html'
     };
     if (acceptedDataTypes[type]) {
         this.dataType = type;
         this.contentType = acceptedDataTypes[type];
     }
+    return this;
+};
+
+/**
+ * Set the message to compare when and access token is expired
+ * @param {String} msg
+ * @return {*}
+ */
+RestClient.prototype.setAccessTokenExpiredMessage = function (msg) {
+    this.expiredAccessTokenMessage = msg;
     return this;
 };
 
@@ -946,7 +970,8 @@ RestClient.prototype.consume = function (options) {
         id,
         prepare,
         bearerText,
-        contentType;
+        contentType,
+        accessTokenExpired = false;
 
     if (options.operation) {
         operation = options.operation;
@@ -1056,45 +1081,66 @@ RestClient.prototype.consume = function (options) {
                     }
                 }
             } else {
-                if (xhr.status === self.HTTP_UNAUTHORIZED && self.autoUseRefreshToken) {
-                    if (self.accessToken.refresh_token) {
-                        self.setGrantType('refresh', {refresh_token: self.accessToken.refresh_token});
-                        self.authorize({
-                            success: function (x, data) {
-                                success = self.consume(options);
-                                if (success) {
-                                    if (options.autorefresh) {
-                                        options.autorefresh(self.accessToken);
+                try {
+                    response = JSON.parse(xhr.responseText);
+
+                    if (response.error === self.OAUTH2_INVALID_GRANT &&
+                        response.error_description === self.expiredAccessTokenMessage){
+                        accessTokenExpired = true;
+                    }
+                    if (xhr.status === self.HTTP_UNAUTHORIZED && self.autoUseRefreshToken && accessTokenExpired) {
+
+                        if (self.accessToken.refresh_token) {
+                            self.setGrantType('refresh', {refresh_token: self.accessToken.refresh_token});
+                            self.authorize({
+                                success: function (x, data) {
+                                    success = self.consume(options);
+                                    if (success) {
+                                        if (options.autorefresh) {
+                                            options.autorefresh(self.accessToken);
+                                        } else {
+                                            self.AuthorizeAutoRefresh(self.accessToken);
+                                        }
+                                    }
+                                },
+                                failure: function (x, data) {
+                                    success = false;
+                                    if (options.failure) {
+                                        options.failure(null, data);
                                     } else {
-                                        self.AuthorizeAutoRefresh(self.accessToken);
+                                        self.ConsumeFailure(null, data);
                                     }
                                 }
-                            },
-                            failure: function (x, data) {
-                                success = false;
-                                if (options.failure) {
-                                    options.failure(null, data);
-                                } else {
-                                    self.ConsumeFailure(null, data);
+                            });
+                        } else {
+                            success = false;
+                            response = {
+                                success: false,
+                                error: {
+                                    error: self.HTTP_UNAUTHORIZED,
+                                    error_description: 'Refresh token is not defined'
                                 }
+                            };
+                            if (options.failure) {
+                                options.failure(xhr, response);
+                            } else {
+                                self.ConsumeFailure(xhr, response);
                             }
-                        });
+                        }
+
                     } else {
                         success = false;
-                        response = {
-                            success: false,
-                            error: {
-                                error: self.HTTP_UNAUTHORIZED,
-                                error_description: 'Refresh token is not defined'
-                            }
-                        };
+                        response = {};
+                        try {
+                            response = JSON.parse(xhr.responseText);
+                        } catch (e) {}
                         if (options.failure) {
                             options.failure(xhr, response);
                         } else {
                             self.ConsumeFailure(xhr, response);
                         }
                     }
-                } else {
+                } catch (e) {
                     success = false;
                     response = {};
                     try {
