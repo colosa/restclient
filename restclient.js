@@ -235,7 +235,7 @@ RestClient = function () {
      * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.6';
+    this.VERSION = '0.1.4';
     /**
      * Stores the authorization variables
      * @cfg {Object}
@@ -310,6 +310,18 @@ RestClient = function () {
      * @type {String}
      */
     this.expiredAccessTokenMessage = '';
+
+    /**
+     * Sets if the restclient will apply REST or AJAX to connect the server
+     * @type {Boolean}
+     */
+    this.restfulBehavior = true;
+
+    /**
+     * Sets the backup URL when the restful is not available
+     * @type {String}
+     */
+    this.backupAJAXURL = null;
 
     /**
      * Stores the REST method/verbs accepted
@@ -580,6 +592,28 @@ RestClient.prototype.setAccessToken = function (obj) {
 };
 
 /**
+ * Sets the restful behavior for this object
+ * @param {Boolean} value
+ * @return {*}
+ */
+RestClient.prototype.setRestfulBehavior = function (value) {
+    if (_.isBoolean(value)) {
+        this.restfulBehavior = value;
+    }
+    return this;
+};
+
+/**
+ * Sets the backup Ajax URL
+ * @param {String} url
+ * @return {*}
+ */
+RestClient.prototype.setBackupAjaxUrl = function (url) {
+    this.backupAJAXURL = url;
+    return this;
+};
+
+/**
  * Convert an Object to Key/Value string
  * @param {Object} obj Input Object
  * @return {String}
@@ -811,64 +845,75 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
         auxBody,
         auxContentType = this.contentType,
         usedQuestionMark = false;
-
-    switch (operation) {
-    case 'read':
-        auxUrl = url;
-        if (id) {
-            auxUrl += id;
-        }
-        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
-            usedQuestionMark = true;
-            auxUrl += '?access_token=' + this.accessToken.access_token;
-        }
-        if (data) {
-            if (usedQuestionMark) {
-                auxUrl += "&";
-            } else {
-                auxUrl += "?";
+    if (this.restfulBehavior) {
+        switch (operation) {
+        case 'read':
+            auxUrl = url;
+            if (id) {
+                auxUrl += id;
             }
-            auxUrl += this.toParams(data);
+            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+                usedQuestionMark = true;
+                auxUrl += '?access_token=' + this.accessToken.access_token;
+            }
+            if (data && data !== {}) {
+                if (usedQuestionMark) {
+                    auxUrl += "&";
+                } else {
+                    auxUrl += "?";
+                }
+                auxUrl += this.toParams(data);
+            }
+            auxBody = null;
+            auxContentType = 'application/x-www-form-urlencoded';
+            break;
+        case 'create':
+            auxUrl = url;
+            auxBody = data || {};
+            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+                auxBody.access_token = this.accessToken.access_token;
+            }
+            auxBody = this.prepareBody(auxBody);
+            break;
+        case 'update':
+            auxUrl = url;
+            if (id) {
+                auxUrl += id;
+            }
+            auxBody = data || {};
+            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+                auxBody.access_token = this.accessToken.access_token;
+            }
+            auxBody = this.prepareBody(auxBody);
+            break;
+        case 'delete':
+            auxUrl = url;
+            if (id) {
+                auxUrl += id;
+            }
+            auxBody = data || {};
+            if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
+                auxBody.access_token = this.accessToken.access_token;
+            }
+            auxBody = this.prepareBody(auxBody);
+            break;
         }
-        auxBody = null;
+    } else {
+        auxUrl = this.backupAJAXURL;
+        auxBody = {
+            operation: operation,
+            url: url,
+            id: id,
+            data: data
+        };
         auxContentType = 'application/x-www-form-urlencoded';
-        break;
-    case 'create':
-        auxUrl = url;
-        auxBody = data || {};
-        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
-            auxBody.access_token = this.accessToken.access_token;
-        }
-        auxBody = this.prepareBody(auxBody);
-        break;
-    case 'update':
-        auxUrl = url;
-        if (id) {
-            auxUrl += id;
-        }
-        auxBody = data || {};
-        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
-            auxBody.access_token = this.accessToken.access_token;
-        }
-        auxBody = this.prepareBody(auxBody);
-        break;
-    case 'delete':
-        auxUrl = url;
-        if (id) {
-            auxUrl += id;
-        }
-        auxBody = data || {};
-        if (this.authorizationType === 'oauth2' && !this.sendOAuthBearerAuthorization) {
-            auxBody.access_token = this.accessToken.access_token;
-        }
-        auxBody = this.prepareBody(auxBody);
-        break;
     }
     return {
         url: auxUrl,
         body: auxBody,
         content_type: auxContentType
     };
+
 };
 
 /**
@@ -987,7 +1032,7 @@ RestClient.prototype.consume = function (options) {
         requiredFields.push('url');
     }
 
-    data = options.data || {};
+    data = options.data || null;
     id = options.id || null;
 
     if (!success) {
@@ -1038,7 +1083,11 @@ RestClient.prototype.consume = function (options) {
         }
         break;
     }
-    method = this.RESTMethods[operation];
+    if (this.restfulBehavior) {
+        method = this.RESTMethods[operation];
+    } else {
+        method = this.RESTMethods['create'];
+    }
     try {
         xhr.open(method, prepareUrl, false);
     } catch (exc) {
@@ -1061,11 +1110,6 @@ RestClient.prototype.consume = function (options) {
             if (xhr.status === self.HTTP_SUCCESS) {
                 try {
                     response = JSON.parse(xhr.responseText);
-                    if (options.success) {
-                        options.success(xhr, response);
-                    } else {
-                        self.ConsumeSuccess(xhr, response);
-                    }
                 } catch (ex) {
                     response = {
                         'success': false,
@@ -1079,6 +1123,11 @@ RestClient.prototype.consume = function (options) {
                     } else {
                         self.ConsumeFailure(xhr, response);
                     }
+                }
+                if (options.success) {
+                    options.success(xhr, response);
+                } else {
+                    self.ConsumeSuccess(xhr, response);
                 }
             } else {
                 try {
