@@ -183,6 +183,23 @@ describe("RestClient.js - Constructor, Setters and Getters", function(){
          
     });
 
+    describe("method 'setRestfulBehavior'", function () {
+        it ("should set the value of 'restfulBehavior' property", function () {
+            rc.setRestfulBehavior(true);
+            expect(rc.restfulBehavior).toBeTruthy();
+            rc.setRestfulBehavior(false);
+            expect(rc.restfulBehavior).toBeFalsy();
+        });
+    });
+
+    describe("method 'setBackupAjaxUrl'", function () {
+        it("should set the value of 'backupAJAXURL' property", function (){
+            rc.setBackupAjaxUrl('http://restserver.colosa.com/');
+            expect(rc.backupAJAXURL).toEqual('http://restserver.colosa.com/');
+        });
+    });
+
+
     describe("method 'getVersion'", function(){
         it("should return the value of 'VERSION' property", function(){
             expect(rc.getVersion()).toEqual(rc.VERSION);
