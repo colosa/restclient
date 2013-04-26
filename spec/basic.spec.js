@@ -1,8 +1,8 @@
 var RestClient = require('../restclient.js').RestClient;
 
-describe("RestClient.js - Constructor, Setters and Getters", function(){
+describe("RestClient.js - Constructor, Setters, Getters and auxiliary functions", function(){
 
-    var rc, rc1, rc2;
+    var rc, rc1, rc2, rc3, fixture;
 
     beforeEach(function(){
         rc = new RestClient();
@@ -199,10 +199,88 @@ describe("RestClient.js - Constructor, Setters and Getters", function(){
         });
     });
 
+    describe("method 'setHeader'", function () {
+        it("should return 'false' if the params are invalid", function() {
+            expect(rc.setHeader()).toBeFalsy();
+            expect(rc.setHeader('valid')).toBeFalsy();
+            expect(rc.setHeader(null, 'valid')).toBeFalsy();
+        });
+
+        it("should return 'true' when the params are valid", function () {
+            expect(rc.setHeader('valid', 'valid')).toBeTruthy();
+        });
+
+        it("should set 'headers' property with the key/value properties", function () {
+            rc3 = new RestClient();
+            expect(rc3.headers).toEqual({});
+            rc3.setHeader('Key1', 'Value1');
+            expect(rc3.headers).toEqual({Key1:'Value1'});
+            rc3.setHeader('Key2', true);
+            expect(rc3.headers).toEqual({Key1:'Value1',Key2: 'true'});
+            rc3.setHeader('Key3', 'false');
+            expect(rc3.headers).toEqual({Key1:'Value1',Key2: 'true', Key3: 'false'});
+            rc3.setHeader('Key4', 56);
+            expect(rc3.headers).toEqual({Key1:'Value1',Key2: 'true', Key3: 'false', Key4: '56'});
+        });
+    });
+
+    describe("method 'setBasicCredentials'", function () {
+        it("should set the authorization variables 'basic_user' and 'basic_password'", function () {
+            fixture = {basic_user: 'Basic_User', basic_password: 'Basic_Password'};
+            rc.setBasicCredentials('Basic_User','Basic_Password');
+            expect(rc.authorization).toEqual(fixture);
+        });
+    });
+
+    describe("method 'setAccessToken'", function () {
+        it ("should set the access token object", function () {
+            fixture = {a:13, b: 56, c: 'Text', d: true};
+            rc.setAccessToken(fixture);
+            expect(rc.accessToken).toEqual(fixture);
+        });
+        it ("should accept objects only", function () {
+            expect(rc3.accessToken).toEqual({});
+            rc3.setAccessToken(12);
+            expect(rc3.accessToken).toEqual({});
+            rc3.setAccessToken('AccessToken');
+            expect(rc3.accessToken).toEqual({});
+            rc3.setAccessToken(true);
+            expect(rc3.accessToken).toEqual({});
+        });
+
+    });
 
     describe("method 'getVersion'", function(){
         it("should return the value of 'VERSION' property", function(){
             expect(rc.getVersion()).toEqual(rc.VERSION);
         })
+    });
+
+    describe("method 'toParams'", function () {
+        it("should convert js object on key=value string", function () {
+            fixture = {};
+            expect(rc.toParams(fixture)).toEqual('');
+            fixture = {k1:'v1'};
+            expect(rc.toParams(fixture)).toEqual('k1=v1');
+            fixture = {k1: true, k2: 12, k3: 'valid'};
+            expect(rc.toParams(fixture)).toEqual('k1=true&k2=12&k3=valid');
+        }); 
+    });
+
+    describe("method 'prepareBody'", function () {
+        it ("should return an JSON string when the dataType is json or jsonp", function () {
+            fixture = {k1: true, k2: 45, k3: 'valid'};
+            rc.setDataType('json');
+            expect(rc.prepareBody(fixture)).toEqual('{"k1":true,"k2":45,"k3":"valid"}');
+        });
+        it ("should return a key=value string when the dataType is not json or jsonp", function () {
+            fixture = {k1: true, k2: 45, k3: 'valid'};
+            rc.setDataType('plain');
+            expect(rc.prepareBody(fixture)).toEqual("k1=true&k2=45&k3=valid");
+            rc.setDataType('form');
+            expect(rc.prepareBody(fixture)).toEqual("k1=true&k2=45&k3=valid");
+            rc.setDataType('html');
+            expect(rc.prepareBody(fixture)).toEqual("k1=true&k2=45&k3=valid");
+        });
     });
 });
