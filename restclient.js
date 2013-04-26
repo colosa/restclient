@@ -1087,7 +1087,7 @@ RestClient.prototype.consume = function (options) {
     if (this.restfulBehavior) {
         method = this.RESTMethods[operation];
     } else {
-        method = this.RESTMethods['create'];
+        method = this.RESTMethods.create;
     }
     try {
         xhr.open(method, prepareUrl, false);
@@ -1195,7 +1195,7 @@ RestClient.prototype.consume = function (options) {
                     response = {};
                     try {
                         response = JSON.parse(xhr.responseText);
-                    } catch (e) {}
+                    } catch (ex) {}
                     if (options.failure) {
                         options.failure(xhr, response);
                     } else {

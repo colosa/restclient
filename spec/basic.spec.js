@@ -283,4 +283,22 @@ describe("RestClient.js - Constructor, Setters, Getters and auxiliary functions"
             expect(rc.prepareBody(fixture)).toEqual("k1=true&k2=45&k3=valid");
         });
     });
+
+    describe("method 'prepareReqFields'", function () {
+        it ("should return an error object with a determinated structure", function () {
+            fixture = {
+                success: false,
+                error: {
+                    error: 400,
+                    error_description : 'Required fields not found'
+                },
+                fields: ['A','B','C']
+            };
+            expect(rc.prepareReqFields(['A','B','C'])).toEqual(fixture);
+        });
+    });
+
+    describe("method 'prepareConsumeUrl'", function () {
+
+    });
 });
