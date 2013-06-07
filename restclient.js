@@ -906,7 +906,7 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
             id: id,
             data: data
         };
-        auxBody = "data='" + JSON.stringify(auxBody) + "'";
+        auxBody = "data='" + encodeURIComponent(JSON.stringify(auxBody)) + "'";
         auxContentType = 'application/x-www-form-urlencoded';
     }
     return {
