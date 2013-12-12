@@ -1086,7 +1086,7 @@ RestClient.prototype.consume = function (options) {
                     return success;
                 } else {
                     if (this.sendOAuthBearerAuthorization) {
-                        bearerText = "Bearer: " + this.accessToken.access_token;
+                        bearerText = "Bearer " + this.accessToken.access_token;
                         xhr.setRequestHeader("Authorization", bearerText);
                     }
                 }
