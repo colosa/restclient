@@ -1051,39 +1051,7 @@ RestClient.prototype.consume = function (options) {
     contentType = prepare.content_type;
 
     xhr = this.createXHR();
-    switch (this.authorizationType) {
-    case 'none':
-        break;
-    case 'basic':
-        basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
-            this.authorization.basic_user);
-        xhr.setRequestHeader("Authorization", "Basic " + basicHash);
-        break;
-    case 'oauth2':
-        if (!this.accessToken.access_token) {
-            success = false;
-            requiredFields.push('access_token');
-            error = {
-                success: false,
-                error : {
-                    error : this.HTTP_BAD_REQUEST,
-                    error_description: 'Access Token not defined'
-                }
-            };
-            if (options.failure) {
-                options.failure(null, this.prepareReqFields(requiredFields));
-            } else {
-                this.ConsumeFailure(null, this.prepareReqFields(requiredFields));
-            }
-            return success;
-        } else {
-            if (this.sendOAuthBearerAuthorization) {
-                bearerText = "Bearer: " + this.accessToken.access_token;
-                xhr.setRequestHeader("Authorization", bearerText);
-            }
-        }
-        break;
-    }
+    
     if (this.restfulBehavior) {
         method = this.RESTMethods[operation];
     } else {
@@ -1091,6 +1059,39 @@ RestClient.prototype.consume = function (options) {
     }
     try {
         xhr.open(method, prepareUrl, false);
+        switch (this.authorizationType) {
+            case 'none':
+                break;
+            case 'basic':
+                basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
+                    this.authorization.basic_password);
+                xhr.setRequestHeader("Authorization", "Basic " + basicHash);
+                break;
+            case 'oauth2':
+                if (!this.accessToken.access_token) {
+                    success = false;
+                    requiredFields.push('access_token');
+                    error = {
+                        success: false,
+                        error : {
+                            error : this.HTTP_BAD_REQUEST,
+                            error_description: 'Access Token not defined'
+                        }
+                    };
+                    if (options.failure) {
+                        options.failure(null, this.prepareReqFields(requiredFields));
+                    } else {
+                        this.ConsumeFailure(null, this.prepareReqFields(requiredFields));
+                    }
+                    return success;
+                } else {
+                    if (this.sendOAuthBearerAuthorization) {
+                        bearerText = "Bearer " + this.accessToken.access_token;
+                        xhr.setRequestHeader("Authorization", bearerText);
+                    }
+                }
+                break;
+        }
     } catch (exc) {
         if (options.xhrfailure) {
             options.xhrfailure(exc, data);
