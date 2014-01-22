@@ -865,7 +865,10 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
                 auxUrl += this.toParams(data);
             }
             auxBody = null;
-            auxContentType = 'application/x-www-form-urlencoded';
+            if (auxContentType === null) {
+                auxContentType = 'application/json';
+            }
+            
             break;
         case 'create':
             auxUrl = url;
@@ -907,7 +910,9 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
             data: data
         };
         auxBody = "data='" + encodeURIComponent(JSON.stringify(auxBody)) + "'";
-        auxContentType = 'application/x-www-form-urlencoded';
+        if (auxContentType === null) {
+            auxContentType = 'application/json';    
+        }
     }
     return {
         url: auxUrl,
