@@ -322,7 +322,11 @@ RestClient = function () {
      * @type {String}
      */
     this.backupAJAXURL = null;
-
+    /**
+     * The property is used to specify certain media types which are aceptable for the response.
+     * @type {String}
+     */
+    this.acceptType = null;
     /**
      * Stores the REST method/verbs accepted
      * @type {Object}
@@ -386,6 +390,7 @@ RestClient.prototype.initObject = function () {
     this.autoStoreAccessToken = true;
     this.authorizationType = 'none';
     this.contentType = 'application/json';
+    this.acceptType = 'application/json';
     this.sendOAuthBearerAuthorization = false;
     this.oauth2NeedsAuthorization = true;
     this.dataType = 'json';
@@ -438,7 +443,24 @@ RestClient.prototype.setContentType = function (value) {
     this.contentType = value;
     return this;
 };
-
+/**
+ * Sets the request accept type
+ * @param {String} type Represent the accept type
+ */
+RestClient.prototype.setAcceptType = function (type) {
+    var availableAcceptTypes = {
+        plain: "text/plain",
+        xhtml_xml: "application/xhtml+xml",
+        json: "application/json",
+        xml: "application/xml",
+        all: "*/*"
+    };
+    
+    if (availableAcceptTypes[type]) {
+        this.acceptType = availableAcceptTypes[type];
+    }
+    return this;
+};
 /**
  * Sets if into OAuth 2.0 mode should be sent the bearer authorization header
  * @param value
@@ -801,6 +823,7 @@ RestClient.prototype.authorize = function (options) {
     if (this.oauth2NeedsAuthorization) {
         xhr.setRequestHeader("Authorization", "Basic " + basicHash);
     }
+    xhr.setRequestHeader("Accept", this.acceptType);
     xhr.setRequestHeader("Content-Type", this.contentType);
 
     //Insert Headers
@@ -843,6 +866,7 @@ RestClient.prototype.prepareReqFields = function (fields) {
 RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
     var auxUrl,
         auxBody,
+        auxAccessType = this.acceptType,
         auxContentType = this.contentType,
         usedQuestionMark = false;
     if (this.restfulBehavior) {
@@ -914,10 +938,14 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
             auxContentType = 'application/json';    
         }
     }
+    if (!auxAccessType){
+        auxAccessType = "*/*";
+    }
     return {
         url: auxUrl,
         body: auxBody,
-        content_type: auxContentType
+        content_type: auxContentType,
+        acceptType: auxAccessType
     };
 
 };
@@ -1022,6 +1050,7 @@ RestClient.prototype.consume = function (options) {
         prepare,
         bearerText,
         contentType,
+        acceptType,
         accessTokenExpired = false;
 
     if (options.operation) {
@@ -1054,6 +1083,7 @@ RestClient.prototype.consume = function (options) {
     prepareUrl = prepare.url;
     body = prepare.body;
     contentType = prepare.content_type;
+    acceptType = prepare.acceptType;
 
     xhr = this.createXHR();
     
@@ -1211,7 +1241,7 @@ RestClient.prototype.consume = function (options) {
             }
         }
     };
-
+    xhr.setRequestHeader("Accept", acceptType);
     xhr.setRequestHeader("Content-Type", contentType);
     //Insert Custom Headers
     _.each(this.headers, function (value, key) {
