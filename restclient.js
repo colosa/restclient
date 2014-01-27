@@ -358,7 +358,7 @@ RestClient = function () {
  * Http Success Constant
  * @type {Number}
  */
-RestClient.prototype.HTTP_SUCCESS = 200;
+RestClient.prototype.HTTP_SUCCESS = ["200","201","202","204","207"];
 /**
  * Http Bad Request Constant
  * @type {Number}
@@ -754,7 +754,7 @@ RestClient.prototype.authorize = function (options) {
             self.AuthorizeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === self.HTTP_SUCCESS) {
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
                     response = JSON.parse(xhr.responseText);
                     if (self.autoStoreAccessToken) {
@@ -1144,7 +1144,7 @@ RestClient.prototype.consume = function (options) {
             self.ConsumeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === self.HTTP_SUCCESS) {
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
                     response = JSON.parse(xhr.responseText);
                 } catch (ex) {
