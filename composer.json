@@ -1,0 +1,13 @@
+{
+    "name":         "colosa/restclient",
+    "description":  "Little REST client written in JS.",
+    "keywords":     ["REST", "client", "javascript"],
+    "homepage":     "http://github.com/colosa/restclient/",
+    "type":         "library",
+    "license":      "MIT",
+
+    "require": {
+        "underscore/underscore": "1.5.2"
+    },
+
+}
