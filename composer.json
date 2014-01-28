@@ -8,6 +8,6 @@
 
     "require": {
         "underscore/underscore": "1.5.2"
-    },
+    }
 
 }
