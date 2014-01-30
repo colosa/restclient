@@ -235,7 +235,7 @@ RestClient = function () {
      * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.4';
+    this.VERSION = 'RESTCLIENT_VERSION';
     /**
      * Stores the authorization variables
      * @cfg {Object}
