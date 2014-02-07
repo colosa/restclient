@@ -589,6 +589,27 @@ RestClient.prototype.setHeader = function (name, value) {
     }
     return response;
 };
+/**
+ * Parses the response text from the server
+ * @param {String} response The string to parse as JSON.
+ * @return {Object} Returns the Object corresponding to the given JSON text.
+ */
+RestClient.prototype.JSONParse = function (response) {
+    var r;
+    try {
+        if (!response){
+            r = "";
+        } else if (response === ""){
+            r = "";
+        } else {
+            r = JSON.parse(response);
+        }
+    } catch (e) {
+        throw new Error ("Parsing error", e);
+        r = "";
+    }
+    return r;
+};
 
 /**
  * Set the user and password for the basic authentication method
@@ -756,7 +777,8 @@ RestClient.prototype.authorize = function (options) {
         if (xhr.readyState === 4) {
             if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                     if (self.autoStoreAccessToken) {
                         self.accessToken = response.token || {};
                     }
@@ -783,7 +805,8 @@ RestClient.prototype.authorize = function (options) {
             } else {
                 response = {};
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                 } catch (ex) {}
                 if (options.failure) {
                     options.failure(xhr, response);
@@ -1146,7 +1169,8 @@ RestClient.prototype.consume = function (options) {
         if (xhr.readyState === 4) {
             if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                 } catch (ex) {
                     response = {
                         'success': false,
@@ -1168,7 +1192,8 @@ RestClient.prototype.consume = function (options) {
                 }
             } else {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
 
                     if (response.error === self.OAUTH2_INVALID_GRANT &&
                         response.error_description === self.expiredAccessTokenMessage){
@@ -1218,7 +1243,8 @@ RestClient.prototype.consume = function (options) {
                         success = false;
                         response = {};
                         try {
-                            response = JSON.parse(xhr.responseText);
+                            //response = JSON.parse(xhr.responseText);
+                            response = self.JSONParse(xhr.responseText);
                         } catch (e) {}
                         if (options.failure) {
                             options.failure(xhr, response);
@@ -1230,7 +1256,8 @@ RestClient.prototype.consume = function (options) {
                     success = false;
                     response = {};
                     try {
-                        response = JSON.parse(xhr.responseText);
+                        //response = JSON.parse(xhr.responseText);
+                        response = self.JSONParse(xhr.responseText);
                     } catch (ex) {}
                     if (options.failure) {
                         options.failure(xhr, response);
