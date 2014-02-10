@@ -1171,6 +1171,11 @@ RestClient.prototype.consume = function (options) {
                 try {
                     //response = JSON.parse(xhr.responseText);
                     response = self.JSONParse(xhr.responseText);
+                    if (options.success) {
+                        options.success(xhr, response);
+                    } else {
+                        self.ConsumeSuccess(xhr, response);
+                    }
                 } catch (ex) {
                     response = {
                         'success': false,
@@ -1184,11 +1189,6 @@ RestClient.prototype.consume = function (options) {
                     } else {
                         self.ConsumeFailure(xhr, response);
                     }
-                }
-                if (options.success) {
-                    options.success(xhr, response);
-                } else {
-                    self.ConsumeSuccess(xhr, response);
                 }
             } else {
                 try {
