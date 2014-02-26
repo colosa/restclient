@@ -605,8 +605,7 @@ RestClient.prototype.JSONParse = function (response) {
             r = JSON.parse(response);
         }
     } catch (e) {
-        throw new Error ("Parsing error", e);
-        r = "";
+        r = "ERROR_PARSE";
     }
     return r;
 };
@@ -775,20 +774,27 @@ RestClient.prototype.authorize = function (options) {
             self.AuthorizeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
-                try {
-                    //response = JSON.parse(xhr.responseText);
-                    response = self.JSONParse(xhr.responseText);
+            response = self.JSONParse(xhr.responseText);
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1 && response !== "ERROR_PARSE") {
+
                     if (self.autoStoreAccessToken) {
                         self.accessToken = response.token || {};
                     }
                     success = true;
                     if (options.success) {
-                        options.success(xhr, response);
+                        try {
+                            options.success(xhr, response);
+                        } catch (e) {
+                            throw new Error (e.message);
+                        }
                     } else {
                         self.AuthorizeSuccess(xhr, response);
                     }
-                } catch (e) {
+   
+                
+            } else {
+
+                if (response === "ERROR_PARSE"){
                     response = {
                         'success': false,
                         'error' : {
@@ -796,20 +802,14 @@ RestClient.prototype.authorize = function (options) {
                             'error_description' : 'Response is not a valid JSON'
                         }
                     };
-                    if (options.failure) {
-                        options.failure(xhr, response);
-                    } else {
-                        self.AuthorizeFailure(xhr, response);
-                    }
                 }
-            } else {
-                response = {};
-                try {
-                    //response = JSON.parse(xhr.responseText);
-                    response = self.JSONParse(xhr.responseText);
-                } catch (ex) {}
+                
                 if (options.failure) {
-                    options.failure(xhr, response);
+                    try {
+                        options.failure(xhr, response);
+                    } catch (e) {
+                        throw new Error (e.message);
+                    }
                 } else {
                     self.AuthorizeFailure(xhr, response);
                 }
@@ -1167,11 +1167,25 @@ RestClient.prototype.consume = function (options) {
             self.ConsumeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
-                try {
-                    //response = JSON.parse(xhr.responseText);
-                    response = self.JSONParse(xhr.responseText);
-                } catch (ex) {
+
+            response = self.JSONParse(xhr.responseText);
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1 && response !== "ERROR_PARSE") {
+                if (self.autoStoreAccessToken) {
+                    self.accessToken = response.token || {};
+                }
+                success = true;
+                if (options.success) {
+                    try {
+                        options.success(xhr, response);
+                    } catch (e) {
+                        throw new Error (e.message);
+                    }
+                } else {
+                    self.AuthorizeSuccess(xhr, response);
+                }
+            } else {
+                success = false;
+                if (response === "ERROR_PARSE"){
                     response = {
                         'success': false,
                         'error' : {
@@ -1179,22 +1193,7 @@ RestClient.prototype.consume = function (options) {
                             'error_description' : 'Response is not a valid JSON'
                         }
                     };
-                    if (options.failure) {
-                        options.failure(xhr, response);
-                    } else {
-                        self.ConsumeFailure(xhr, response);
-                    }
-                }
-                if (options.success) {
-                    options.success(xhr, response);
                 } else {
-                    self.ConsumeSuccess(xhr, response);
-                }
-            } else {
-                try {
-                    //response = JSON.parse(xhr.responseText);
-                    response = self.JSONParse(xhr.responseText);
-
                     if (response.error === self.OAUTH2_INVALID_GRANT &&
                         response.error_description === self.expiredAccessTokenMessage){
                         accessTokenExpired = true;
@@ -1232,39 +1231,23 @@ RestClient.prototype.consume = function (options) {
                                     error_description: 'Refresh token is not defined'
                                 }
                             };
-                            if (options.failure) {
-                                options.failure(xhr, response);
-                            } else {
-                                self.ConsumeFailure(xhr, response);
-                            }
                         }
 
-                    } else {
-                        success = false;
-                        response = {};
-                        try {
-                            //response = JSON.parse(xhr.responseText);
-                            response = self.JSONParse(xhr.responseText);
-                        } catch (e) {}
-                        if (options.failure) {
-                            options.failure(xhr, response);
-                        } else {
-                            self.ConsumeFailure(xhr, response);
-                        }
                     }
-                } catch (e) {
-                    success = false;
-                    response = {};
-                    try {
-                        //response = JSON.parse(xhr.responseText);
-                        response = self.JSONParse(xhr.responseText);
-                    } catch (ex) {}
-                    if (options.failure) {
-                        options.failure(xhr, response);
-                    } else {
-                        self.ConsumeFailure(xhr, response);
-                    }
+
                 }
+                
+
+                if (options.failure) {
+                    try {
+                        options.failure(xhr, response);
+                    } catch (e) {
+                        throw new Error (e.message);
+                    }
+                } else {
+                    self.AuthorizeFailure(xhr, response);
+                }
+                
             }
         }
     };
