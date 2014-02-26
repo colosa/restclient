@@ -252,7 +252,7 @@ RestClient = function () {
 </span>     * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.4';
+    this.VERSION = 'RESTCLIENT_VERSION';
 <span id='RestClient-cfg-authorization'>    /**
 </span>     * Stores the authorization variables
      * @cfg {Object}
@@ -339,7 +339,11 @@ RestClient = function () {
      * @type {String}
      */
     this.backupAJAXURL = null;
-
+<span id='RestClient-property-acceptType'>    /**
+</span>     * The property is used to specify certain media types which are aceptable for the response.
+     * @type {String}
+     */
+    this.acceptType = null;
 <span id='RestClient-property-RESTMethods'>    /**
 </span>     * Stores the REST method/verbs accepted
      * @type {Object}
@@ -371,7 +375,7 @@ RestClient = function () {
 </span> * Http Success Constant
  * @type {Number}
  */
-RestClient.prototype.HTTP_SUCCESS = 200;
+RestClient.prototype.HTTP_SUCCESS = [&quot;200&quot;,&quot;201&quot;,&quot;202&quot;,&quot;204&quot;,&quot;207&quot;];
 <span id='RestClient-property-HTTP_BAD_REQUEST'>/**
 </span> * Http Bad Request Constant
  * @type {Number}
@@ -403,6 +407,7 @@ RestClient.prototype.initObject = function () {
     this.autoStoreAccessToken = true;
     this.authorizationType = 'none';
     this.contentType = 'application/json';
+    this.acceptType = 'application/json';
     this.sendOAuthBearerAuthorization = false;
     this.oauth2NeedsAuthorization = true;
     this.dataType = 'json';
@@ -455,7 +460,24 @@ RestClient.prototype.setContentType = function (value) {
     this.contentType = value;
     return this;
 };
-
+<span id='RestClient-method-setAcceptType'>/**
+</span> * Sets the request accept type
+ * @param {String} type Represent the accept type
+ */
+RestClient.prototype.setAcceptType = function (type) {
+    var availableAcceptTypes = {
+        plain: &quot;text/plain&quot;,
+        xhtml_xml: &quot;application/xhtml+xml&quot;,
+        json: &quot;application/json&quot;,
+        xml: &quot;application/xml&quot;,
+        all: &quot;*/*&quot;
+    };
+    
+    if (availableAcceptTypes[type]) {
+        this.acceptType = availableAcceptTypes[type];
+    }
+    return this;
+};
 <span id='RestClient-method-setSendBearerAuthorization'>/**
 </span> * Sets if into OAuth 2.0 mode should be sent the bearer authorization header
  * @param value
@@ -584,8 +606,29 @@ RestClient.prototype.setHeader = function (name, value) {
     }
     return response;
 };
+<span id='RestClient-prototype-JSONParse'>/**
+</span> * Parses the response text from the server
+ * @param {String} response The string to parse as JSON.
+ * @return {Object} Returns the Object corresponding to the given JSON text.
+ */
+RestClient.prototype.JSONParse = function (response) {
+    var r;
+    try {
+        if (!response){
+            r = &quot;&quot;;
+        } else if (response === &quot;&quot;){
+            r = &quot;&quot;;
+        } else {
+            r = JSON.parse(response);
+        }
+    } catch (e) {
+        throw new Error (&quot;Parsing error&quot;, e);
+        r = &quot;&quot;;
+    }
+    return r;
+};
 
-<span id='RestClient-method-setBasicCredentials'>/**
+<span id='RestClient-prototype-JSONParse-method-setBasicCredentials'>/**
 </span> * Set the user and password for the basic authentication method
  * @param {String} username
  * @param {String} password
@@ -596,7 +639,7 @@ RestClient.prototype.setBasicCredentials = function (username, password) {
     this.authorization.basic_password = password;
     return this;
 };
-<span id='RestClient-method-setAccessToken'>/**
+<span id='RestClient-prototype-JSONParse-method-setAccessToken'>/**
 </span> * Set manually with an access token
  * @param {Object} obj
  * @return {*}
@@ -608,7 +651,7 @@ RestClient.prototype.setAccessToken = function (obj) {
     return this;
 };
 
-<span id='RestClient-method-setRestfulBehavior'>/**
+<span id='RestClient-prototype-JSONParse-method-setRestfulBehavior'>/**
 </span> * Sets the restful behavior for this object
  * @param {Boolean} value
  * @return {*}
@@ -620,7 +663,7 @@ RestClient.prototype.setRestfulBehavior = function (value) {
     return this;
 };
 
-<span id='RestClient-method-setBackupAjaxUrl'>/**
+<span id='RestClient-prototype-JSONParse-method-setBackupAjaxUrl'>/**
 </span> * Sets the backup Ajax URL
  * @param {String} url
  * @return {*}
@@ -630,7 +673,7 @@ RestClient.prototype.setBackupAjaxUrl = function (url) {
     return this;
 };
 
-<span id='RestClient-method-toParams'>/**
+<span id='RestClient-prototype-JSONParse-method-toParams'>/**
 </span> * Convert an Object to Key/Value string
  * @param {Object} obj Input Object
  * @return {String}
@@ -645,7 +688,7 @@ RestClient.prototype.toParams = function (obj) {
     return out.join('&amp;');
 };
 
-<span id='RestClient-method-prepareBody'>/**
+<span id='RestClient-prototype-JSONParse-method-prepareBody'>/**
 </span> * Prepares the data to send through XHR depending of the content-type defined
  * @param {*} data
  * @return {String}
@@ -662,7 +705,7 @@ RestClient.prototype.prepareBody = function (data) {
     return out;
 };
 
-<span id='RestClient-method-createXHR'>/**
+<span id='RestClient-prototype-JSONParse-method-createXHR'>/**
 </span> * Create an object XmlHttpRequest or returns false if fails
  * @return {*}
  */
@@ -686,7 +729,7 @@ RestClient.prototype.createXHR = function () {
     return httpRequest;
 };
 
-<span id='RestClient-method-authorize'>/**
+<span id='RestClient-prototype-JSONParse-method-authorize'>/**
 </span> * Request an OAuth 2.0 Access Token
  * @param {Object} [options] Authorization Options
  *
@@ -712,6 +755,10 @@ RestClient.prototype.createXHR = function () {
  *         //fires if the restclient cannot create a XmlHttpRequest Object
  *         xhrfailure: function (error, data) {
  *            //Notify Client Browser Not Supported
+ *         },
+ *         //fires when the request finishes
+ *         complete: function(xhr, response) {
+ *             //Process Complete
  *         }
  *     }
  *
@@ -749,9 +796,10 @@ RestClient.prototype.authorize = function (options) {
             self.AuthorizeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === self.HTTP_SUCCESS) {
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                     if (self.autoStoreAccessToken) {
                         self.accessToken = response.token || {};
                     }
@@ -778,7 +826,8 @@ RestClient.prototype.authorize = function (options) {
             } else {
                 response = {};
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                 } catch (ex) {}
                 if (options.failure) {
                     options.failure(xhr, response);
@@ -821,6 +870,7 @@ RestClient.prototype.authorize = function (options) {
     if (this.oauth2NeedsAuthorization) {
         xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Basic &quot; + basicHash);
     }
+    xhr.setRequestHeader(&quot;Accept&quot;, this.acceptType);
     xhr.setRequestHeader(&quot;Content-Type&quot;, this.contentType);
 
     //Insert Headers
@@ -833,7 +883,7 @@ RestClient.prototype.authorize = function (options) {
     return success;
 };
 
-<span id='RestClient-method-prepareReqFields'>/**
+<span id='RestClient-prototype-JSONParse-method-prepareReqFields'>/**
 </span> * Prepare the error object when exists required fields not found
  * @param {Array} fields Required Fields Array
  * @return {Object} Error Object
@@ -852,7 +902,7 @@ RestClient.prototype.prepareReqFields = function (fields) {
     return response;
 };
 
-<span id='RestClient-method-prepareConsumeUrl'>/**
+<span id='RestClient-prototype-JSONParse-method-prepareConsumeUrl'>/**
 </span> * Prepares the consume URL using configurations
  * @param {String} operation
  * @param {String} url
@@ -863,6 +913,7 @@ RestClient.prototype.prepareReqFields = function (fields) {
 RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
     var auxUrl,
         auxBody,
+        auxAccessType = this.acceptType,
         auxContentType = this.contentType,
         usedQuestionMark = false;
     if (this.restfulBehavior) {
@@ -885,7 +936,10 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
                 auxUrl += this.toParams(data);
             }
             auxBody = null;
-            auxContentType = 'application/x-www-form-urlencoded';
+            if (auxContentType === null) {
+                auxContentType = 'application/json';
+            }
+            
             break;
         case 'create':
             auxUrl = url;
@@ -927,17 +981,23 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
             data: data
         };
         auxBody = &quot;data='&quot; + encodeURIComponent(JSON.stringify(auxBody)) + &quot;'&quot;;
-        auxContentType = 'application/x-www-form-urlencoded';
+        if (auxContentType === null) {
+            auxContentType = 'application/json';    
+        }
+    }
+    if (!auxAccessType){
+        auxAccessType = &quot;*/*&quot;;
     }
     return {
         url: auxUrl,
         body: auxBody,
-        content_type: auxContentType
+        content_type: auxContentType,
+        acceptType: auxAccessType
     };
 
 };
 
-<span id='RestClient-method-getCall'>/**
+<span id='RestClient-prototype-JSONParse-method-getCall'>/**
 </span> * Consume REST through GET Method
  * @param {Object} config Configuration Object
  *
@@ -949,7 +1009,7 @@ RestClient.prototype.getCall = function (config) {
     return this.consume(config);
 };
 
-<span id='RestClient-method-postCall'>/**
+<span id='RestClient-prototype-JSONParse-method-postCall'>/**
 </span> * Consume REST through POST Method
  * @param {Object} config Configuration Object
  *
@@ -961,7 +1021,7 @@ RestClient.prototype.postCall = function (config) {
     return this.consume(config);
 };
 
-<span id='RestClient-method-putCall'>/**
+<span id='RestClient-prototype-JSONParse-method-putCall'>/**
 </span> * Consume REST through PUT Method
  * @param {Object} config Configuration Object
  *
@@ -973,7 +1033,7 @@ RestClient.prototype.putCall = function (config) {
     return this.consume(config);
 };
 
-<span id='RestClient-method-deleteCall'>/**
+<span id='RestClient-prototype-JSONParse-method-deleteCall'>/**
 </span> * Consume REST through DELETE Method
  * @param {Object} config Configuration Object
  *
@@ -985,7 +1045,7 @@ RestClient.prototype.deleteCall = function (config) {
     return this.consume(config);
 };
 
-<span id='RestClient-method-consume'>/**
+<span id='RestClient-prototype-JSONParse-method-consume'>/**
 </span> * Consume  REST method
  * @param {Object} options Consume Options
  *
@@ -1015,6 +1075,10 @@ RestClient.prototype.deleteCall = function (config) {
  *         //fires if the restclient cannot create a XmlHttpRequest Object
  *         xhrfailure: function (error, data) {
  *            //Notify Client Browser Not Supported
+ *         },
+ *         //fires when the request finishes
+ *         complete: function(xhr, response) {
+ *             //Process Complete
  *         }
  *     }
  * @return {Boolean}
@@ -1037,6 +1101,7 @@ RestClient.prototype.consume = function (options) {
         prepare,
         bearerText,
         contentType,
+        acceptType,
         accessTokenExpired = false;
 
     if (options.operation) {
@@ -1069,41 +1134,10 @@ RestClient.prototype.consume = function (options) {
     prepareUrl = prepare.url;
     body = prepare.body;
     contentType = prepare.content_type;
+    acceptType = prepare.acceptType;
 
     xhr = this.createXHR();
-    switch (this.authorizationType) {
-    case 'none':
-        break;
-    case 'basic':
-        basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
-            this.authorization.basic_user);
-        xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Basic &quot; + basicHash);
-        break;
-    case 'oauth2':
-        if (!this.accessToken.access_token) {
-            success = false;
-            requiredFields.push('access_token');
-            error = {
-                success: false,
-                error : {
-                    error : this.HTTP_BAD_REQUEST,
-                    error_description: 'Access Token not defined'
-                }
-            };
-            if (options.failure) {
-                options.failure(null, this.prepareReqFields(requiredFields));
-            } else {
-                this.ConsumeFailure(null, this.prepareReqFields(requiredFields));
-            }
-            return success;
-        } else {
-            if (this.sendOAuthBearerAuthorization) {
-                bearerText = &quot;Bearer: &quot; + this.accessToken.access_token;
-                xhr.setRequestHeader(&quot;Authorization&quot;, bearerText);
-            }
-        }
-        break;
-    }
+    
     if (this.restfulBehavior) {
         method = this.RESTMethods[operation];
     } else {
@@ -1111,6 +1145,39 @@ RestClient.prototype.consume = function (options) {
     }
     try {
         xhr.open(method, prepareUrl, false);
+        switch (this.authorizationType) {
+            case 'none':
+                break;
+            case 'basic':
+                basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
+                    this.authorization.basic_password);
+                xhr.setRequestHeader(&quot;Authorization&quot;, &quot;Basic &quot; + basicHash);
+                break;
+            case 'oauth2':
+                if (!this.accessToken.access_token) {
+                    success = false;
+                    requiredFields.push('access_token');
+                    error = {
+                        success: false,
+                        error : {
+                            error : this.HTTP_BAD_REQUEST,
+                            error_description: 'Access Token not defined'
+                        }
+                    };
+                    if (options.failure) {
+                        options.failure(null, this.prepareReqFields(requiredFields));
+                    } else {
+                        this.ConsumeFailure(null, this.prepareReqFields(requiredFields));
+                    }
+                    return success;
+                } else {
+                    if (this.sendOAuthBearerAuthorization) {
+                        bearerText = &quot;Bearer &quot; + this.accessToken.access_token;
+                        xhr.setRequestHeader(&quot;Authorization&quot;, bearerText);
+                    }
+                }
+                break;
+        }
     } catch (exc) {
         if (options.xhrfailure) {
             options.xhrfailure(exc, data);
@@ -1128,9 +1195,10 @@ RestClient.prototype.consume = function (options) {
             self.ConsumeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === self.HTTP_SUCCESS) {
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                 } catch (ex) {
                     response = {
                         'success': false,
@@ -1152,7 +1220,8 @@ RestClient.prototype.consume = function (options) {
                 }
             } else {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
 
                     if (response.error === self.OAUTH2_INVALID_GRANT &amp;&amp;
                         response.error_description === self.expiredAccessTokenMessage){
@@ -1202,7 +1271,8 @@ RestClient.prototype.consume = function (options) {
                         success = false;
                         response = {};
                         try {
-                            response = JSON.parse(xhr.responseText);
+                            //response = JSON.parse(xhr.responseText);
+                            response = self.JSONParse(xhr.responseText);
                         } catch (e) {}
                         if (options.failure) {
                             options.failure(xhr, response);
@@ -1214,7 +1284,8 @@ RestClient.prototype.consume = function (options) {
                     success = false;
                     response = {};
                     try {
-                        response = JSON.parse(xhr.responseText);
+                        //response = JSON.parse(xhr.responseText);
+                        response = self.JSONParse(xhr.responseText);
                     } catch (ex) {}
                     if (options.failure) {
                         options.failure(xhr, response);
@@ -1228,7 +1299,7 @@ RestClient.prototype.consume = function (options) {
             }
         }
     };
-
+    xhr.setRequestHeader(&quot;Accept&quot;, acceptType);
     xhr.setRequestHeader(&quot;Content-Type&quot;, contentType);
     //Insert Custom Headers
     _.each(this.headers, function (value, key) {
@@ -1240,7 +1311,7 @@ RestClient.prototype.consume = function (options) {
     return success;
 };
 
-<span id='RestClient-event-XHRFailure'>/**
+<span id='RestClient-prototype-JSONParse-event-XHRFailure'>/**
 </span> * Captures when the RestClient cannot create an XHR object
  * @param error
  * @param data
@@ -1249,7 +1320,7 @@ RestClient.prototype.consume = function (options) {
 RestClient.prototype.XHRFailure = function (error, data) {
 };
 
-<span id='RestClient-event-AuthorizeSuccess'>/**
+<span id='RestClient-prototype-JSONParse-event-AuthorizeSuccess'>/**
 </span> * Captures when the Authorize method returns a success response
  * @param xhr
  * @param response
@@ -1258,7 +1329,7 @@ RestClient.prototype.XHRFailure = function (error, data) {
 RestClient.prototype.AuthorizeSuccess = function (xhr, response) {
 };
 
-<span id='RestClient-event-AuthorizeFailure'>/**
+<span id='RestClient-prototype-JSONParse-event-AuthorizeFailure'>/**
 </span> * Captures when the Authorize method returns a failure response
  * @param xhr
  * @param response
@@ -1267,7 +1338,7 @@ RestClient.prototype.AuthorizeSuccess = function (xhr, response) {
 RestClient.prototype.AuthorizeFailure = function (xhr, response) {
 };
 
-<span id='RestClient-event-AuthorizeReady'>/**
+<span id='RestClient-prototype-JSONParse-event-AuthorizeReady'>/**
 </span> * Captures when the Authorize method change the state (XHR)
  * @param xhr
  * @event
@@ -1275,7 +1346,7 @@ RestClient.prototype.AuthorizeFailure = function (xhr, response) {
 RestClient.prototype.AuthorizeReady = function (xhr) {
 };
 
-<span id='RestClient-event-AuthorizeAutoRefresh'>/**
+<span id='RestClient-prototype-JSONParse-event-AuthorizeAutoRefresh'>/**
 </span> * Captures when the Authorize method fires the refresh token authorization successfuly
  * @param accessToken
  * @event
@@ -1283,7 +1354,7 @@ RestClient.prototype.AuthorizeReady = function (xhr) {
 RestClient.prototype.AuthorizeAutoRefresh = function (accessToken) {
 };
 
-<span id='RestClient-event-ConsumeSuccess'>/**
+<span id='RestClient-prototype-JSONParse-event-ConsumeSuccess'>/**
 </span> * Captures when the Consume method returns a success response
  * @param xhr
  * @param response
@@ -1292,7 +1363,7 @@ RestClient.prototype.AuthorizeAutoRefresh = function (accessToken) {
 RestClient.prototype.ConsumeSuccess = function (xhr, response) {
 };
 
-<span id='RestClient-event-ConsumeFailure'>/**
+<span id='RestClient-prototype-JSONParse-event-ConsumeFailure'>/**
 </span> * Captures when the Consume method returns a failure response
  * @param xhr
  * @param response
@@ -1301,7 +1372,7 @@ RestClient.prototype.ConsumeSuccess = function (xhr, response) {
 RestClient.prototype.ConsumeFailure = function (xhr, response) {
 };
 
-<span id='RestClient-event-ConsumeReady'>/**
+<span id='RestClient-prototype-JSONParse-event-ConsumeReady'>/**
 </span> * Captures when the Consume method change the state (XHR)
  * @param xhr
  * @event
@@ -1316,6 +1387,7 @@ if (typeof exports !== 'undefined') {
         RCBase64: RCBase64
     };
     var _ = require('underscore');
-}</pre>
+}
+</pre>
 </body>
 </html>

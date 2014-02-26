@@ -738,6 +738,10 @@ RestClient.prototype.createXHR = function () {
  *         //fires if the restclient cannot create a XmlHttpRequest Object
  *         xhrfailure: function (error, data) {
  *            //Notify Client Browser Not Supported
+ *         },
+ *         //fires when the request finishes
+ *         complete: function(xhr, response) {
+ *             //Process Complete
  *         }
  *     }
  *
@@ -1054,6 +1058,10 @@ RestClient.prototype.deleteCall = function (config) {
  *         //fires if the restclient cannot create a XmlHttpRequest Object
  *         xhrfailure: function (error, data) {
  *            //Notify Client Browser Not Supported
+ *         },
+ *         //fires when the request finishes
+ *         complete: function(xhr, response) {
+ *             //Process Complete
  *         }
  *     }
  * @return {Boolean}
