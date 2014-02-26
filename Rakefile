@@ -11,9 +11,9 @@ task :required do
         isOk = false
     end
     begin
-        require 'uglifier'
+        require 'closure-compiler'
     rescue LoadError
-        puts "Uglifier gem not found.\nInstall it by running 'yum install -y ruby-devel && gem install uglifier'"
+        puts "closure-compiler gem not found.\nInstall it by running 'gem install closure-compiler'"
         isOk = false
     end
     if !isOk
@@ -35,7 +35,7 @@ task :build do
 
   source = File.read('restclient.js')
   newsource = source.gsub(/RESTCLIENT_VERSION/, version)
-  min = Uglifier.compile(newsource)
+  min = Closure::Compiler.new.compile(newsource)
   File.open('restclient-min.js', 'w') do |file|
     file.write min
   end
