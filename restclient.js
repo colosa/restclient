@@ -769,6 +769,9 @@ RestClient.prototype.authorize = function (options) {
                     self.AuthorizeFailure(xhr, response);
                 }
             }
+            if(typeof options.complete === 'function') {
+                options.complete(xhr, response);
+            }
         }
     };
 
@@ -1202,6 +1205,9 @@ RestClient.prototype.consume = function (options) {
                         self.ConsumeFailure(xhr, response);
                     }
                 }
+            }
+            if(typeof options.complete === 'function') {
+                options.complete(xhr, response);
             }
         }
     };

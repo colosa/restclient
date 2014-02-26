@@ -252,7 +252,7 @@ RestClient = function () {
 </span>     * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.6';
+    this.VERSION = '0.1.4';
 <span id='RestClient-cfg-authorization'>    /**
 </span>     * Stores the authorization variables
      * @cfg {Object}
@@ -327,6 +327,18 @@ RestClient = function () {
      * @type {String}
      */
     this.expiredAccessTokenMessage = '';
+
+<span id='RestClient-property-restfulBehavior'>    /**
+</span>     * Sets if the restclient will apply REST or AJAX to connect the server
+     * @type {Boolean}
+     */
+    this.restfulBehavior = true;
+
+<span id='RestClient-property-backupAJAXURL'>    /**
+</span>     * Sets the backup URL when the restful is not available
+     * @type {String}
+     */
+    this.backupAJAXURL = null;
 
 <span id='RestClient-property-RESTMethods'>    /**
 </span>     * Stores the REST method/verbs accepted
@@ -596,6 +608,28 @@ RestClient.prototype.setAccessToken = function (obj) {
     return this;
 };
 
+<span id='RestClient-method-setRestfulBehavior'>/**
+</span> * Sets the restful behavior for this object
+ * @param {Boolean} value
+ * @return {*}
+ */
+RestClient.prototype.setRestfulBehavior = function (value) {
+    if (_.isBoolean(value)) {
+        this.restfulBehavior = value;
+    }
+    return this;
+};
+
+<span id='RestClient-method-setBackupAjaxUrl'>/**
+</span> * Sets the backup Ajax URL
+ * @param {String} url
+ * @return {*}
+ */
+RestClient.prototype.setBackupAjaxUrl = function (url) {
+    this.backupAJAXURL = url;
+    return this;
+};
+
 <span id='RestClient-method-toParams'>/**
 </span> * Convert an Object to Key/Value string
  * @param {Object} obj Input Object
@@ -752,6 +786,9 @@ RestClient.prototype.authorize = function (options) {
                     self.AuthorizeFailure(xhr, response);
                 }
             }
+            if(typeof options.complete === 'function') {
+                options.complete(xhr, response);
+            }
         }
     };
 
@@ -828,64 +865,76 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
         auxBody,
         auxContentType = this.contentType,
         usedQuestionMark = false;
-
-    switch (operation) {
-    case 'read':
-        auxUrl = url;
-        if (id) {
-            auxUrl += id;
-        }
-        if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
-            usedQuestionMark = true;
-            auxUrl += '?access_token=' + this.accessToken.access_token;
-        }
-        if (data) {
-            if (usedQuestionMark) {
-                auxUrl += &quot;&amp;&quot;;
-            } else {
-                auxUrl += &quot;?&quot;;
+    if (this.restfulBehavior) {
+        switch (operation) {
+        case 'read':
+            auxUrl = url;
+            if (id) {
+                auxUrl += id;
             }
-            auxUrl += this.toParams(data);
+            if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
+                usedQuestionMark = true;
+                auxUrl += '?access_token=' + this.accessToken.access_token;
+            }
+            if (data &amp;&amp; data !== {}) {
+                if (usedQuestionMark) {
+                    auxUrl += &quot;&amp;&quot;;
+                } else {
+                    auxUrl += &quot;?&quot;;
+                }
+                auxUrl += this.toParams(data);
+            }
+            auxBody = null;
+            auxContentType = 'application/x-www-form-urlencoded';
+            break;
+        case 'create':
+            auxUrl = url;
+            auxBody = data || {};
+            if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
+                auxBody.access_token = this.accessToken.access_token;
+            }
+            auxBody = this.prepareBody(auxBody);
+            break;
+        case 'update':
+            auxUrl = url;
+            if (id) {
+                auxUrl += id;
+            }
+            auxBody = data || {};
+            if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
+                auxBody.access_token = this.accessToken.access_token;
+            }
+            auxBody = this.prepareBody(auxBody);
+            break;
+        case 'delete':
+            auxUrl = url;
+            if (id) {
+                auxUrl += id;
+            }
+            auxBody = data || {};
+            if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
+                auxBody.access_token = this.accessToken.access_token;
+            }
+            auxBody = this.prepareBody(auxBody);
+            break;
         }
-        auxBody = null;
+    } else {
+        auxUrl = this.backupAJAXURL;
+        auxBody = {
+            operation: operation,
+            url: url,
+            id: id,
+            data: data
+        };
+        auxBody = &quot;data='&quot; + encodeURIComponent(JSON.stringify(auxBody)) + &quot;'&quot;;
         auxContentType = 'application/x-www-form-urlencoded';
-        break;
-    case 'create':
-        auxUrl = url;
-        auxBody = data || {};
-        if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
-            auxBody.access_token = this.accessToken.access_token;
-        }
-        auxBody = this.prepareBody(auxBody);
-        break;
-    case 'update':
-        auxUrl = url;
-        if (id) {
-            auxUrl += id;
-        }
-        auxBody = data || {};
-        if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
-            auxBody.access_token = this.accessToken.access_token;
-        }
-        auxBody = this.prepareBody(auxBody);
-        break;
-    case 'delete':
-        auxUrl = url;
-        if (id) {
-            auxUrl += id;
-        }
-        auxBody = data || {};
-        if (this.authorizationType === 'oauth2' &amp;&amp; !this.sendOAuthBearerAuthorization) {
-            auxBody.access_token = this.accessToken.access_token;
-        }
-        auxBody = this.prepareBody(auxBody);
-        break;
     }
     return {
         url: auxUrl,
         body: auxBody,
         content_type: auxContentType
     };
+
 };
 
 <span id='RestClient-method-getCall'>/**
@@ -1004,7 +1053,7 @@ RestClient.prototype.consume = function (options) {
         requiredFields.push('url');
     }
 
-    data = options.data || {};
+    data = options.data || null;
     id = options.id || null;
 
     if (!success) {
@@ -1055,7 +1104,11 @@ RestClient.prototype.consume = function (options) {
         }
         break;
     }
-    method = this.RESTMethods[operation];
+    if (this.restfulBehavior) {
+        method = this.RESTMethods[operation];
+    } else {
+        method = this.RESTMethods.create;
+    }
     try {
         xhr.open(method, prepareUrl, false);
     } catch (exc) {
@@ -1078,11 +1131,6 @@ RestClient.prototype.consume = function (options) {
             if (xhr.status === self.HTTP_SUCCESS) {
                 try {
                     response = JSON.parse(xhr.responseText);
-                    if (options.success) {
-                        options.success(xhr, response);
-                    } else {
-                        self.ConsumeSuccess(xhr, response);
-                    }
                 } catch (ex) {
                     response = {
                         'success': false,
@@ -1096,6 +1144,11 @@ RestClient.prototype.consume = function (options) {
                     } else {
                         self.ConsumeFailure(xhr, response);
                     }
+                }
+                if (options.success) {
+                    options.success(xhr, response);
+                } else {
+                    self.ConsumeSuccess(xhr, response);
                 }
             } else {
                 try {
@@ -1162,13 +1215,16 @@ RestClient.prototype.consume = function (options) {
                     response = {};
                     try {
                         response = JSON.parse(xhr.responseText);
-                    } catch (e) {}
+                    } catch (ex) {}
                     if (options.failure) {
                         options.failure(xhr, response);
                     } else {
                         self.ConsumeFailure(xhr, response);
                     }
                 }
+            }
+            if(typeof options.complete === 'function') {
+                options.complete(xhr, response);
             }
         }
     };
