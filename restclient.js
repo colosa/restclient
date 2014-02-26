@@ -235,7 +235,7 @@ RestClient = function () {
      * Library's Version
      * @type {String}
      */
-    this.VERSION = '0.1.4';
+    this.VERSION = 'RESTCLIENT_VERSION';
     /**
      * Stores the authorization variables
      * @cfg {Object}
@@ -322,7 +322,11 @@ RestClient = function () {
      * @type {String}
      */
     this.backupAJAXURL = null;
-
+    /**
+     * The property is used to specify certain media types which are aceptable for the response.
+     * @type {String}
+     */
+    this.acceptType = null;
     /**
      * Stores the REST method/verbs accepted
      * @type {Object}
@@ -354,7 +358,7 @@ RestClient = function () {
  * Http Success Constant
  * @type {Number}
  */
-RestClient.prototype.HTTP_SUCCESS = 200;
+RestClient.prototype.HTTP_SUCCESS = ["200","201","202","204","207"];
 /**
  * Http Bad Request Constant
  * @type {Number}
@@ -386,6 +390,7 @@ RestClient.prototype.initObject = function () {
     this.autoStoreAccessToken = true;
     this.authorizationType = 'none';
     this.contentType = 'application/json';
+    this.acceptType = 'application/json';
     this.sendOAuthBearerAuthorization = false;
     this.oauth2NeedsAuthorization = true;
     this.dataType = 'json';
@@ -438,7 +443,24 @@ RestClient.prototype.setContentType = function (value) {
     this.contentType = value;
     return this;
 };
-
+/**
+ * Sets the request accept type
+ * @param {String} type Represent the accept type
+ */
+RestClient.prototype.setAcceptType = function (type) {
+    var availableAcceptTypes = {
+        plain: "text/plain",
+        xhtml_xml: "application/xhtml+xml",
+        json: "application/json",
+        xml: "application/xml",
+        all: "*/*"
+    };
+    
+    if (availableAcceptTypes[type]) {
+        this.acceptType = availableAcceptTypes[type];
+    }
+    return this;
+};
 /**
  * Sets if into OAuth 2.0 mode should be sent the bearer authorization header
  * @param value
@@ -566,6 +588,27 @@ RestClient.prototype.setHeader = function (name, value) {
         response = false;
     }
     return response;
+};
+/**
+ * Parses the response text from the server
+ * @param {String} response The string to parse as JSON.
+ * @return {Object} Returns the Object corresponding to the given JSON text.
+ */
+RestClient.prototype.JSONParse = function (response) {
+    var r;
+    try {
+        if (!response){
+            r = "";
+        } else if (response === ""){
+            r = "";
+        } else {
+            r = JSON.parse(response);
+        }
+    } catch (e) {
+        throw new Error ("Parsing error", e);
+        r = "";
+    }
+    return r;
 };
 
 /**
@@ -732,9 +775,10 @@ RestClient.prototype.authorize = function (options) {
             self.AuthorizeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === self.HTTP_SUCCESS) {
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                     if (self.autoStoreAccessToken) {
                         self.accessToken = response.token || {};
                     }
@@ -761,7 +805,8 @@ RestClient.prototype.authorize = function (options) {
             } else {
                 response = {};
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                 } catch (ex) {}
                 if (options.failure) {
                     options.failure(xhr, response);
@@ -804,6 +849,7 @@ RestClient.prototype.authorize = function (options) {
     if (this.oauth2NeedsAuthorization) {
         xhr.setRequestHeader("Authorization", "Basic " + basicHash);
     }
+    xhr.setRequestHeader("Accept", this.acceptType);
     xhr.setRequestHeader("Content-Type", this.contentType);
 
     //Insert Headers
@@ -846,6 +892,7 @@ RestClient.prototype.prepareReqFields = function (fields) {
 RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
     var auxUrl,
         auxBody,
+        auxAccessType = this.acceptType,
         auxContentType = this.contentType,
         usedQuestionMark = false;
     if (this.restfulBehavior) {
@@ -868,7 +915,10 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
                 auxUrl += this.toParams(data);
             }
             auxBody = null;
-            auxContentType = 'application/x-www-form-urlencoded';
+            if (auxContentType === null) {
+                auxContentType = 'application/json';
+            }
+            
             break;
         case 'create':
             auxUrl = url;
@@ -910,12 +960,18 @@ RestClient.prototype.prepareConsumeUrl = function (operation, url, id, data) {
             data: data
         };
         auxBody = "data='" + encodeURIComponent(JSON.stringify(auxBody)) + "'";
-        auxContentType = 'application/x-www-form-urlencoded';
+        if (auxContentType === null) {
+            auxContentType = 'application/json';    
+        }
+    }
+    if (!auxAccessType){
+        auxAccessType = "*/*";
     }
     return {
         url: auxUrl,
         body: auxBody,
-        content_type: auxContentType
+        content_type: auxContentType,
+        acceptType: auxAccessType
     };
 
 };
@@ -1020,6 +1076,7 @@ RestClient.prototype.consume = function (options) {
         prepare,
         bearerText,
         contentType,
+        acceptType,
         accessTokenExpired = false;
 
     if (options.operation) {
@@ -1052,41 +1109,10 @@ RestClient.prototype.consume = function (options) {
     prepareUrl = prepare.url;
     body = prepare.body;
     contentType = prepare.content_type;
+    acceptType = prepare.acceptType;
 
     xhr = this.createXHR();
-    switch (this.authorizationType) {
-    case 'none':
-        break;
-    case 'basic':
-        basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
-            this.authorization.basic_user);
-        xhr.setRequestHeader("Authorization", "Basic " + basicHash);
-        break;
-    case 'oauth2':
-        if (!this.accessToken.access_token) {
-            success = false;
-            requiredFields.push('access_token');
-            error = {
-                success: false,
-                error : {
-                    error : this.HTTP_BAD_REQUEST,
-                    error_description: 'Access Token not defined'
-                }
-            };
-            if (options.failure) {
-                options.failure(null, this.prepareReqFields(requiredFields));
-            } else {
-                this.ConsumeFailure(null, this.prepareReqFields(requiredFields));
-            }
-            return success;
-        } else {
-            if (this.sendOAuthBearerAuthorization) {
-                bearerText = "Bearer: " + this.accessToken.access_token;
-                xhr.setRequestHeader("Authorization", bearerText);
-            }
-        }
-        break;
-    }
+    
     if (this.restfulBehavior) {
         method = this.RESTMethods[operation];
     } else {
@@ -1094,6 +1120,39 @@ RestClient.prototype.consume = function (options) {
     }
     try {
         xhr.open(method, prepareUrl, false);
+        switch (this.authorizationType) {
+            case 'none':
+                break;
+            case 'basic':
+                basicHash = RCBase64.encode(this.authorization.basic_user + ':' +
+                    this.authorization.basic_password);
+                xhr.setRequestHeader("Authorization", "Basic " + basicHash);
+                break;
+            case 'oauth2':
+                if (!this.accessToken.access_token) {
+                    success = false;
+                    requiredFields.push('access_token');
+                    error = {
+                        success: false,
+                        error : {
+                            error : this.HTTP_BAD_REQUEST,
+                            error_description: 'Access Token not defined'
+                        }
+                    };
+                    if (options.failure) {
+                        options.failure(null, this.prepareReqFields(requiredFields));
+                    } else {
+                        this.ConsumeFailure(null, this.prepareReqFields(requiredFields));
+                    }
+                    return success;
+                } else {
+                    if (this.sendOAuthBearerAuthorization) {
+                        bearerText = "Bearer " + this.accessToken.access_token;
+                        xhr.setRequestHeader("Authorization", bearerText);
+                    }
+                }
+                break;
+        }
     } catch (exc) {
         if (options.xhrfailure) {
             options.xhrfailure(exc, data);
@@ -1111,9 +1170,10 @@ RestClient.prototype.consume = function (options) {
             self.ConsumeReady(xhr);
         }
         if (xhr.readyState === 4) {
-            if (xhr.status === self.HTTP_SUCCESS) {
+            if ((self.HTTP_SUCCESS).indexOf(String(xhr.status)) != -1) {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
                 } catch (ex) {
                     response = {
                         'success': false,
@@ -1135,7 +1195,8 @@ RestClient.prototype.consume = function (options) {
                 }
             } else {
                 try {
-                    response = JSON.parse(xhr.responseText);
+                    //response = JSON.parse(xhr.responseText);
+                    response = self.JSONParse(xhr.responseText);
 
                     if (response.error === self.OAUTH2_INVALID_GRANT &&
                         response.error_description === self.expiredAccessTokenMessage){
@@ -1185,7 +1246,8 @@ RestClient.prototype.consume = function (options) {
                         success = false;
                         response = {};
                         try {
-                            response = JSON.parse(xhr.responseText);
+                            //response = JSON.parse(xhr.responseText);
+                            response = self.JSONParse(xhr.responseText);
                         } catch (e) {}
                         if (options.failure) {
                             options.failure(xhr, response);
@@ -1197,7 +1259,8 @@ RestClient.prototype.consume = function (options) {
                     success = false;
                     response = {};
                     try {
-                        response = JSON.parse(xhr.responseText);
+                        //response = JSON.parse(xhr.responseText);
+                        response = self.JSONParse(xhr.responseText);
                     } catch (ex) {}
                     if (options.failure) {
                         options.failure(xhr, response);
@@ -1211,7 +1274,7 @@ RestClient.prototype.consume = function (options) {
             }
         }
     };
-
+    xhr.setRequestHeader("Accept", acceptType);
     xhr.setRequestHeader("Content-Type", contentType);
     //Insert Custom Headers
     _.each(this.headers, function (value, key) {
