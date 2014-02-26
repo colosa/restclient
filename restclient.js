@@ -737,6 +737,10 @@ RestClient.prototype.createXHR = function () {
  *         //fires if the restclient cannot create a XmlHttpRequest Object
  *         xhrfailure: function (error, data) {
  *            //Notify Client Browser Not Supported
+ *         },
+ *         //fires when the request finishes
+ *         complete: function(xhr, response) {
+ *             //Process Complete
  *         }
  *     }
  *
@@ -813,6 +817,9 @@ RestClient.prototype.authorize = function (options) {
                 } else {
                     self.AuthorizeFailure(xhr, response);
                 }
+            }
+            if(typeof options.complete === 'function') {
+                options.complete(xhr, response);
             }
         }
     };
@@ -1051,6 +1058,10 @@ RestClient.prototype.deleteCall = function (config) {
  *         //fires if the restclient cannot create a XmlHttpRequest Object
  *         xhrfailure: function (error, data) {
  *            //Notify Client Browser Not Supported
+ *         },
+ *         //fires when the request finishes
+ *         complete: function(xhr, response) {
+ *             //Process Complete
  *         }
  *     }
  * @return {Boolean}
@@ -1248,6 +1259,9 @@ RestClient.prototype.consume = function (options) {
                     self.AuthorizeFailure(xhr, response);
                 }
                 
+            }
+            if(typeof options.complete === 'function') {
+                options.complete(xhr, response);
             }
         }
     };
